@@ -1,0 +1,25 @@
+name: Build on PR
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # The runner to use for this job
+    steps:
+      - uses: actions/checkout@v3  # Clone and Check out the repository content to GitHub Actions runner
+      - name: Use Node.js
+        uses: actions/setup-node@v3 # Set up Node.js environment
+        with:
+          node-version: '20'
+      
+      - name: Install yarn
+        run: npm install yarn -g # Correct indentation here
+      
+      - name: Install Dependencies
+        run: yarn install
+        
+      - name: Run Build
+        run: yarn run build

@@ -35,12 +35,13 @@ jobs:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
-        script: |
+        script:
           sudo docker pull suleman100devx/pakpay:latest
           sudo docker stop web-app || true
           sudo docker rm web-app || true
           sudo docker run -d \
             --name web-app \
+            --restart always \
             -p 3005:3000 \
             -e DATABASE_URL=${{ secrets.DB_URL }} \
             suleman100devx/pakpay:latest

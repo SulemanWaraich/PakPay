@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { AppbarClient } from "../components/AppbarClient";
 import Script from "next/script";
 import AnalyticsProvider from "../components/AnalyticsProvider"; // we'll create this below
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,7 +47,9 @@ export default function RootLayout({
         <Providers>
           <AppbarClient />
           {/* Track route changes */}
-          <AnalyticsProvider />
+            <Suspense fallback={null}> 
+               <AnalyticsProvider />   
+            </Suspense>
           {children}
         </Providers>
       </body>

@@ -28,7 +28,7 @@ async function getOnRampTransactions() {
             userId: Number(session?.user?.id)
         }
     });
-    return txns.map(t => ({
+    return txns.map((t: any) => ({
         time: t.startTime,
         amount: t.amount,
         status: t.status,
@@ -41,7 +41,7 @@ export default async function() {
     const transactions = await getOnRampTransactions();
 
     return <div className="w-screen">
-        <div className="text-4xl text-[#6a51a6] pt-8 mb-8 font-bold ml-4">
+        <div className="text-4xl text-purple-600 pt-8 mb-8 font-bold ml-4">
             Transfer
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4">

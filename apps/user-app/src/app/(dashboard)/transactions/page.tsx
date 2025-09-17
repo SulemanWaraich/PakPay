@@ -1,164 +1,288 @@
-import { Button } from '../../../components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { ChevronDown, Download } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Button } from "../../../components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card"
+import { Badge } from "../../../components/ui/badge"
+import { Input } from "../../../components/ui/input"
+import { ChevronDown, Download, ArrowUpRight, ArrowDownLeft, Calendar, Filter, X } from "lucide-react"
+import { cn } from "../../lib/utils"
+import prisma from "@repo/db"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../../lib/auth"
+import FilterForm from "../../../components/FilterForm"
+import ExportButton from "../../../components/ExportButton"
 
-const transactions = [
-  {
-    id: 1,
-    type: "Withdrew USDC",
-    date: "Feb 19, 2024",
-    time: "03:18",
-    amount: "-5,059.9477",
-    currency: "USDC",
-    usdValue: "-$5,060.36",
-    isPositive: false
-  },
-  {
-    id: 2,
-    type: "Converted to USDC",
-    date: "Feb 19, 2024", 
-    time: "03:17",
-    amount: "+5,059.9477",
-    currency: "USDC",
-    usdValue: "-704.0000 DYM",
-    isPositive: true
-  }
-];
+interface SearchParams {
+  type?: string
+  startDate?: string
+  endDate?: string
+}
 
-const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
+export default async function TransactionsPage({
+  searchParams
+}: {
+  searchParams: SearchParams
+}) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    return (
       <div className="p-8">
-        <h1 className="text-3xl font-semibold text-purple-600 mb-8">Transactions</h1>
-        
-        <Tabs defaultValue="history" className="w-full">
-          <TabsList className="grid w-fit grid-cols-2 mb-8">
-            <TabsTrigger value="history" className="px-6">History</TabsTrigger>
-            <TabsTrigger value="scheduled" className="px-6">Scheduled</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="history" className="space-y-6">
-            <div>
-              <h2 className="text-xl font-medium mb-6">Transactions History</h2>
-              
-              {/* Transaction Filters */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <Select>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Assets" />
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Assets</SelectItem>
-                      <SelectItem value="usdc">USDC</SelectItem>
-                      <SelectItem value="btc">BTC</SelectItem>
-                      <SelectItem value="eth">ETH</SelectItem>
-                    </SelectContent>
-                  </Select>
+        <h2 className="text-xl text-red-500">You must be signed in to view transactions.</h2>
+      </div>
+    )
+  }
 
-                  <Select>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Types" />
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="deposit">Deposit</SelectItem>
-                      <SelectItem value="withdrawal">Withdrawal</SelectItem>
-                      <SelectItem value="trade">Trade</SelectItem>
-                    </SelectContent>
-                  </Select>
+  // Parse filter parameters
+  const typeFilter = searchParams.type
+  const startDate = searchParams.startDate ? new Date(searchParams.startDate) : undefined
+  const endDate = searchParams.endDate ? new Date(searchParams.endDate + "T23:59:59") : undefined
 
-                  <Select>
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Start date" />
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                    </SelectContent>
-                  </Select>
+  // Build where conditions for filtering
+  const dateFilter = {
+    ...(startDate && { gte: startDate }),
+    ...(endDate && { lte: endDate })
+  }
 
-                  <Select>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="End date" />
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                    </SelectContent>
-                  </Select>
+  // Fetch transactions with filters
+  let onrampTx: any[] = []
+  let offrampTx: any[] = []
 
-                  <Button variant="ghost" className="text-muted-foreground">
-                    Clear
-                  </Button>
-                </div>
+  if (!typeFilter || typeFilter === "all" || typeFilter === "deposit") {
+    onrampTx = await prisma.onRampTransaction.findMany({
+      where: {
+        userId: Number(session.user.id),
+        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter })
+      },
+      orderBy: { startTime: "desc" },
+    })
+  }
 
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
+  if (!typeFilter || typeFilter === "all" || typeFilter === "withdrawal") {
+    offrampTx = await prisma.offRampTransaction.findMany({
+      where: {
+        userId: Number(session.user.id),
+        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter })
+      },
+      orderBy: { startTime: "desc" },
+    })
+  }
+
+  // Normalize to a common structure
+  const allTransactions = [
+    ...onrampTx.map((tx) => ({
+      id: `onramp-${tx.id}`,
+      type: "Deposit (On-Ramp)",
+      date: new Date(tx.startTime).toLocaleDateString(),
+      time: new Date(tx.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      amount: tx.amount,
+      currency: tx.provider || "Bank",
+      status: tx.status || "Processing",
+      isPositive: true,
+      timestamp: tx.startTime,
+      rawData: tx
+    })),
+    ...offrampTx.map((tx) => ({
+      id: `offramp-${tx.id}`,
+      type: "Withdrawal (Off-Ramp)",
+      date: new Date(tx.startTime).toLocaleDateString(),
+      time: new Date(tx.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      amount: tx.amount,
+      currency: tx.bankAccount || "Bank",
+      status: tx.status || "Processing",
+      isPositive: false,
+      timestamp: tx.startTime,
+      rawData: tx
+    })),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  // Calculate statistics
+  const totalDeposits = allTransactions.filter(tx => tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
+  const totalWithdrawals = allTransactions.filter(tx => !tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
+  const netAmount = totalDeposits - totalWithdrawals
+
+  // Check for active filters
+  const hasActiveFilters = typeFilter || startDate || endDate
+
+  return (
+    <div className="min-h-screen w-screen">
+      <div className="p-8">
+        <div className="mb-4">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+            Transactions
+          </h1>
+          <p className="text-gray-600">Track and manage your financial activities</p>
+        </div>
+
+        {/* Filter Section */}
+        <Card className="border-green-100 shadow-lg bg-white/80 backdrop-blur-sm mb-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl text-green-700 flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters & Export
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FilterForm 
+              currentType={typeFilter}
+              currentStartDate={searchParams.startDate}
+              currentEndDate={searchParams.endDate}
+            />
+            
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="text-sm font-medium text-gray-700">Active filters:</span>
+                {typeFilter && typeFilter !== "all" && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Type: {typeFilter === "deposit" ? "Deposits" : "Withdrawals"}
+                  </Badge>
+                )}
+                {startDate && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    From: {new Date(startDate).toLocaleDateString()}
+                  </Badge>
+                )}
+                {endDate && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    To: {new Date(searchParams.endDate!).toLocaleDateString()}
+                  </Badge>
+                )}
               </div>
+            )}
 
-              {/* Transactions List */}
-              <div className="bg-card rounded-lg border border-border">
-                <div className="p-6">
-                  {transactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between py-4 border-b border-border last:border-b-0">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center bg-purple-600">
-                          <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center  bg-purple-600">
-                            <span className="text-primary-foreground text-xs font-bold ">$</span>
+            {/* Export Button */}
+         
+          </CardContent>
+        </Card>
+
+     
+
+        {/* Transactions List */}
+        <Card className="border-green-100 shadow-lg bg-white/80 backdrop-blur-sm mb-4">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl text-green-700 flex items-center gap-2">
+              <Filter className="h-6 w-6" />
+              Transaction History
+              {/* {allTransactions.length > 0 && (
+                <Badge variant="outline" className="ml-auto">
+                  {allTransactions.length} transactions
+                </Badge>
+              )} */}
+                <div className="ml-auto border-green-100">
+              <ExportButton transactions={allTransactions} />
+            </div>
+            </CardTitle>
+             
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {allTransactions.length === 0 ? (
+                <Card className="p-12 text-center border-dashed border-green-200">
+                  <div className="text-green-600 mb-2">
+                    <Filter className="h-12 w-12 mx-auto opacity-50" />
+                  </div>
+                  <p className="text-gray-500 text-lg">
+                    {hasActiveFilters ? "No transactions match your filters" : "No transactions found"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" className="mt-4" asChild>
+                      <a href="/transactions">Clear all filters</a>
+                    </Button>
+                  )}
+                </Card>
+              ) : (
+                allTransactions.map((transaction) => (
+                  <Card
+                    key={transaction.id}
+                    className="hover:shadow-md transition-all duration-200 border-green-100 hover:border-green-200 bg-white/90 backdrop-blur-sm"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div
+                            className={cn(
+                              "w-12 h-12 rounded-full flex items-center justify-center shadow-md",
+                              transaction.isPositive
+                                ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                                : "bg-gradient-to-br from-red-500 to-rose-600"
+                            )}
+                          >
+                            {transaction.isPositive ? (
+                              <ArrowDownLeft className="h-6 w-6 text-white" />
+                            ) : (
+                              <ArrowUpRight className="h-6 w-6 text-white" />
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="font-semibold text-gray-900 text-lg">{transaction.type}</div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Calendar className="h-3 w-3" />
+                              {transaction.date}, {transaction.time}
+                            </div>
+                            <div className="text-sm text-gray-600">{transaction.currency}</div>
                           </div>
                         </div>
-                        
-                        <div>
-                          <div className="font-medium text-foreground">{transaction.type}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {transaction.date}, {transaction.time}
+
+                        <div className="text-right space-y-2">
+                          <div
+                            className={cn(
+                              "text-2xl font-bold",
+                              transaction.isPositive ? "text-green-600" : "text-red-600"
+                            )}
+                          >
+                            Rs {transaction.isPositive ? "+" : "-"}
+                            {Number(transaction.amount).toLocaleString()}
                           </div>
+                          <Badge
+                            variant={transaction.status === "Success" ? "default" : "secondary"}
+                            className={cn(
+                              "text-xs font-medium",
+                              transaction.status === "Success"
+                                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                            )}
+                          >
+                            {transaction.status}
+                          </Badge>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-                      <div className="text-right">
-                        <div className={cn(
-                          "font-medium",
-                          transaction.isPositive ? "text-success" : "text-foreground"
-                        )}>
-                          {transaction.isPositive ? '+' : ''}{transaction.amount} {transaction.currency}
-                        </div>
-                        {transaction.usdValue && (
-                          <div className="text-sm text-muted-foreground">
-                            {transaction.usdValue}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+           {/* Summary Statistics */}
+        {allTransactions.length > 0 && (
+          <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-gray-600">Total Transactions</p>
+                  <p className="text-2xl font-bold text-green-600">{allTransactions.length}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Deposits</p>
+                  <p className="text-2xl font-bold text-green-600">Rs {totalDeposits.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Withdrawals</p>
+                  <p className="text-2xl font-bold text-red-600">Rs {totalWithdrawals.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Net Amount</p>
+                  <p className={cn("text-2xl font-bold", netAmount >= 0 ? "text-green-600" : "text-red-600")}>
+                    Rs {netAmount >= 0 ? "+" : ""}{netAmount.toLocaleString()}
+                  </p>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="scheduled" className="space-y-6">
-            <div>
-              <h2 className="text-xl font-medium mb-6">Scheduled Transactions</h2>
-              <div className="bg-card rounded-lg border border-border p-12 text-center">
-                <p className="text-muted-foreground">No scheduled transactions found</p>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
-  );
-};
-
-export default Index;
+  )
+}

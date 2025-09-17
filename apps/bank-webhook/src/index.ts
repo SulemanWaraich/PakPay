@@ -16,6 +16,7 @@ app.post("/hdfcWebHook", async (req, res) => {
   
 try {
   await db.$transaction([
+
     db.balance.update({
     where: {
       userId: paymentinformation.userId
@@ -42,5 +43,51 @@ try {
   res.status(411).json({msg: "transaction failed"})
 }
 })
+
+
+app.post("/withdrawWebHook", async (req, res) => {
+  const token = req.body.token;
+  const userId = Number(req.body.user_identifier);
+  const amount = Number(req.body.amount);
+
+  if (!token || !userId || !amount) {
+    return res.status(400).json({ msg: "missing payload" });
+  }
+
+  try {
+    // Start transaction: update balance and mark offramp txn success
+    await db.$transaction([
+      // decrement user balance
+      db.balance.update({
+        where: { userId },
+        data: {
+          amount: { decrement: amount },
+        },
+      }),
+      // mark the offramp transaction as Success
+      db.offRampTransaction.update({
+        where: { token },
+        data: { status: "Success" },
+      }),
+    ]);
+
+    return res.status(200).json({ msg: "withdraw captured" });
+  } catch (error) {
+    console.error("withdrawWebHook error", error);
+
+    // Handle insufficient funds (Prisma throws) or missing token
+    try {
+      // set transaction status to Failed if token exists
+      await db.offRampTransaction.update({
+        where: { token },
+        data: { status: "Failure" },
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    return res.status(500).json({ msg: "transaction failed" });
+  }
+});
 
 app.listen(3003);

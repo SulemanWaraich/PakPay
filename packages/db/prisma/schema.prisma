@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id                Int                 @id @default(autoincrement())
-  email             String?             @unique
-  name              String?
-  number            String              @unique
-  password          String
-  OnRampTransaction OnRampTransaction[]
-  Balance           Balance[]
-  sentTransfers     p2pTransfer[]       @relation(name: "FromUserRelation")
-  receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
+  id                 Int                  @id @default(autoincrement())
+  email              String?              @unique
+  name               String?
+  number             String               @unique
+  password           String
+  Balance            Balance?
+  OffRampTransaction OffRampTransaction[]
+  OnRampTransaction  OnRampTransaction[]
+  sentTransfers      p2pTransfer[]        @relation("FromUserRelation")
+  receivedTransfers  p2pTransfer[]        @relation("ToUserRelation")
 }
 
 model Merchant {
@@ -27,13 +28,13 @@ model Merchant {
 }
 
 model p2pTransfer {
-  id         Int          @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   amount     Int
   timestamp  DateTime
   fromUserId Int
-  fromUser   User         @relation(name: "FromUserRelation", fields: [fromUserId], references: [id])
   toUserId   Int
-  toUser     User         @relation(name: "ToUserRelation", fields: [toUserId], references: [id])
+  fromUser   User     @relation("FromUserRelation", fields: [fromUserId], references: [id])
+  toUser     User     @relation("ToUserRelation", fields: [toUserId], references: [id])
 }
 
 model OnRampTransaction {
@@ -45,6 +46,17 @@ model OnRampTransaction {
   startTime DateTime
   userId    Int
   user      User         @relation(fields: [userId], references: [id])
+}
+
+model OffRampTransaction {
+  id          Int           @id @default(autoincrement())
+  status      OffRampStatus
+  token       String        @unique
+  amount      Int
+  startTime   DateTime      @default(now())
+  userId      Int
+  bankAccount String
+  user        User          @relation(fields: [userId], references: [id])
 }
 
 model Balance {
@@ -61,6 +73,12 @@ enum AuthType {
 }
 
 enum OnRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+enum OffRampStatus {
   Success
   Failure
   Processing

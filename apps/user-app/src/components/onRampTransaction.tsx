@@ -26,7 +26,7 @@ export const OnRampTransactions = ({
                         Received PKR
                     </div>
                     <div className="text-slate-600 text-xs">
-                        {t.time.toDateString()}
+                        {t.time ? new Date(t.time).toDateString() : "N/A"}
                     </div>
                 </div>
                 <div className="flex flex-col justify-center">

@@ -1,54 +1,40 @@
 import Credentials from "next-auth/providers/credentials";
-import  bcrypt from "bcrypt"
+import  bcrypt from "bcryptjs"
 import db from "@repo/db"
+import { pages } from "next/dist/build/templates/app-page";
+import { signIn } from "next-auth/react";
 
 export const authOptions = {
   providers: [
     Credentials({
       name: 'Credentials',
       credentials: {
-        phone: {label: "Phone Number", type: "text", placeholder: "123123"},
-        email: {label: "email", type: "email"},
-        password: {label: "password", type: "password"}
+        email: {label: "Email", type: "email"},
+        password: {label: "Password", type: "password"}
       },
       async authorize(credentials: any){
-        const hashedPassword = await bcrypt.hash(credentials.password, 10);
         const existingUser = await db.user.findFirst({
                 where: {
-                    number: credentials.phone
+                    email: credentials.email
                 }
             });
 
-            if (existingUser) {
-                const passwordValidation = await bcrypt.compare(credentials.password, existingUser.password);
-                if (passwordValidation) {
-                    return {
-                        id: existingUser.id.toString(),
-                        name: existingUser.name,
-                        email: existingUser.number
-                    }
-                }
+            if (!existingUser) {
+               
                 return null;
+                }
+
+                const passwordValidation = await bcrypt.compare(credentials.password, existingUser.password);
+                if (!passwordValidation) {
+                    return null
             }
 
-            try {
-                const user = await db.user.create({
-                    data: {
-                        number: credentials.phone,
-                        password: hashedPassword,
-                        email: credentials.email
-                    }
-                });
-            
-                return {
-                    id: user.id.toString(),
-                    name: user.name,
-                    email: user.number
-                }
-            } catch(e) {
-                console.error(e);
-            }
-            return null;
+          
+            return {
+                        id: existingUser.id.toString(),
+                        name: existingUser.name,
+                        email: existingUser.email
+                    };
       }
     })
   ],            
@@ -61,6 +47,11 @@ export const authOptions = {
 
             return session
         }
-    }
+    },
+
+    pages: {
+        signIn: "/auth/signin",
+    },
+
 
 }

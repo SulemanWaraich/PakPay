@@ -27,7 +27,7 @@ export const OffRampTransactions = ({
           <div key={i} className="flex justify-between py-2 border-b last:border-b-0">
             <div>
               <div className="text-sm">Withdrawn PKR</div>
-              <div className="text-slate-600 text-xs">{new Date(t.time).toDateString()}</div>
+              {/* <div className="text-slate-600 text-xs">{new Date(t.time).toDateString()}</div> */}
               <div className="text-xs text-slate-500">{t.bankAccount}</div>
             </div>
             <div className="flex flex-col justify-center text-right">

@@ -1,9 +1,7 @@
 import { Button } from "../../../components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card"
 import { Badge } from "../../../components/ui/badge"
-import { Input } from "../../../components/ui/input"
-import { ChevronDown, Download, ArrowUpRight, ArrowDownLeft, Calendar, Filter, X } from "lucide-react"
+import { Calendar, Filter, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 import { cn } from "../../lib/utils"
 import prisma from "@repo/db"
 import { getServerSession } from "next-auth"
@@ -18,7 +16,7 @@ interface SearchParams {
 }
 
 export default async function TransactionsPage({
-  searchParams
+  searchParams,
 }: {
   searchParams: SearchParams
 }) {
@@ -40,7 +38,7 @@ export default async function TransactionsPage({
   // Build where conditions for filtering
   const dateFilter = {
     ...(startDate && { gte: startDate }),
-    ...(endDate && { lte: endDate })
+    ...(endDate && { lte: endDate }),
   }
 
   // Fetch transactions with filters
@@ -51,7 +49,7 @@ export default async function TransactionsPage({
     onrampTx = await prisma.onRampTransaction.findMany({
       where: {
         userId: Number(session.user.id),
-        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter })
+        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter }),
       },
       orderBy: { startTime: "desc" },
     })
@@ -61,7 +59,7 @@ export default async function TransactionsPage({
     offrampTx = await prisma.offRampTransaction.findMany({
       where: {
         userId: Number(session.user.id),
-        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter })
+        ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter }),
       },
       orderBy: { startTime: "desc" },
     })
@@ -79,7 +77,7 @@ export default async function TransactionsPage({
       status: tx.status || "Processing",
       isPositive: true,
       timestamp: tx.startTime,
-      rawData: tx
+      rawData: tx,
     })),
     ...offrampTx.map((tx) => ({
       id: `offramp-${tx.id}`,
@@ -91,43 +89,44 @@ export default async function TransactionsPage({
       status: tx.status || "Processing",
       isPositive: false,
       timestamp: tx.startTime,
-      rawData: tx
+      rawData: tx,
     })),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   // Calculate statistics
-  const totalDeposits = allTransactions.filter(tx => tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
-  const totalWithdrawals = allTransactions.filter(tx => !tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
+  const totalDeposits = allTransactions.filter((tx) => tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
+  const totalWithdrawals = allTransactions.filter((tx) => !tx.isPositive).reduce((sum, tx) => sum + Number(tx.amount), 0)
   const netAmount = totalDeposits - totalWithdrawals
 
   // Check for active filters
   const hasActiveFilters = typeFilter || startDate || endDate
 
   return (
-    <div className="min-h-screen w-screen">
-      <div className="p-8">
-        <div className="mb-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+    <div className="min-h-screen bg-gray-50 w-screen">
+      <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
             Transactions
           </h1>
           <p className="text-gray-600">Track and manage your financial activities</p>
         </div>
 
         {/* Filter Section */}
-        <Card className="border-green-100 shadow-lg bg-white/80 backdrop-blur-sm mb-2">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl text-green-700 flex items-center gap-2">
-              <Filter className="h-5 w-5" />
+        <Card className="pt-4">
+          {/* <CardHeader className="pb-3">
+            <CardTitle className="text-md text-green-700 flex items-center gap-2">
+              <Filter className="h-3 w-3" />
               Filters & Export
             </CardTitle>
-          </CardHeader>
+          </CardHeader> */}
           <CardContent>
-            <FilterForm 
+            <FilterForm
               currentType={typeFilter}
               currentStartDate={searchParams.startDate}
               currentEndDate={searchParams.endDate}
             />
-            
+
             {/* Active Filters Display */}
             {hasActiveFilters && (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -149,135 +148,120 @@ export default async function TransactionsPage({
                 )}
               </div>
             )}
-
-            {/* Export Button */}
-         
           </CardContent>
         </Card>
-
-     
 
         {/* Transactions List */}
-        <Card className="border-green-100 shadow-lg bg-white/80 backdrop-blur-sm mb-4">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl text-green-700 flex items-center gap-2">
-              <Filter className="h-6 w-6" />
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg text-green-700 flex items-center gap-2">
               Transaction History
-              {/* {allTransactions.length > 0 && (
-                <Badge variant="outline" className="ml-auto">
-                  {allTransactions.length} transactions
-                </Badge>
-              )} */}
-                <div className="ml-auto border-green-100">
-              <ExportButton transactions={allTransactions} />
-            </div>
+              <div className="ml-auto">
+                <ExportButton transactions={allTransactions} />
+              </div>
             </CardTitle>
-             
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {allTransactions.length === 0 ? (
-                <Card className="p-12 text-center border-dashed border-green-200">
-                  <div className="text-green-600 mb-2">
-                    <Filter className="h-12 w-12 mx-auto opacity-50" />
-                  </div>
-                  <p className="text-gray-500 text-lg">
-                    {hasActiveFilters ? "No transactions match your filters" : "No transactions found"}
-                  </p>
-                  {hasActiveFilters && (
-                    <Button variant="outline" className="mt-4" asChild>
-                      <a href="/transactions">Clear all filters</a>
-                    </Button>
-                  )}
-                </Card>
-              ) : (
-                allTransactions.map((transaction) => (
-                  <Card
-                    key={transaction.id}
-                    className="hover:shadow-md transition-all duration-200 border-green-100 hover:border-green-200 bg-white/90 backdrop-blur-sm"
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div
-                            className={cn(
-                              "w-12 h-12 rounded-full flex items-center justify-center shadow-md",
-                              transaction.isPositive
-                                ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                                : "bg-gradient-to-br from-red-500 to-rose-600"
-                            )}
-                          >
-                            {transaction.isPositive ? (
-                              <ArrowDownLeft className="h-6 w-6 text-white" />
-                            ) : (
-                              <ArrowUpRight className="h-6 w-6 text-white" />
-                            )}
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="font-semibold text-gray-900 text-lg">{transaction.type}</div>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Calendar className="h-3 w-3" />
-                              {transaction.date}, {transaction.time}
-                            </div>
-                            <div className="text-sm text-gray-600">{transaction.currency}</div>
-                          </div>
+          <CardContent className="space-y-3">
+            {allTransactions.length === 0 ? (
+              <Card className="p-12 text-center border-dashed border-green-200">
+                <div className="text-green-600 mb-2">
+                  <Filter className="h-12 w-12 mx-auto opacity-50" />
+                </div>
+                <p className="text-gray-500 text-lg">
+                  {hasActiveFilters ? "No transactions match your filters" : "No transactions found"}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="outline" className="mt-4" asChild>
+                    <a href="/transactions">Clear all filters</a>
+                  </Button>
+                )}
+              </Card>
+            ) : (
+              allTransactions.map((transaction) => (
+                <Card
+                  key={transaction.id}
+                  className="hover:shadow-md transition-all duration-200 border-green-100 hover:border-green-200"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center shadow-md",
+                            transaction.isPositive
+                              ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                              : "bg-gradient-to-br from-red-500 to-rose-600"
+                          )}
+                        >
+                          {transaction.isPositive ? (
+                            <ArrowDownLeft className="h-5 w-5 text-white" />
+                          ) : (
+                            <ArrowUpRight className="h-5 w-5 text-white" />
+                          )}
                         </div>
 
-                        <div className="text-right space-y-2">
-                          <div
-                            className={cn(
-                              "text-2xl font-bold",
-                              transaction.isPositive ? "text-green-600" : "text-red-600"
-                            )}
-                          >
-                            Rs {transaction.isPositive ? "+" : "-"}
-                            {Number(transaction.amount).toLocaleString()}
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-gray-900 text-sm md:text-base">{transaction.type}</div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Calendar className="h-3 w-3" />
+                            {transaction.date}, {transaction.time}
                           </div>
-                          <Badge
-                            variant={transaction.status === "Success" ? "default" : "secondary"}
-                            className={cn(
-                              "text-xs font-medium",
-                              transaction.status === "Success"
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                            )}
-                          >
-                            {transaction.status}
-                          </Badge>
+                          <div className="text-xs text-gray-600">{transaction.currency}</div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
+
+                      <div className="text-right space-y-1">
+                        <div
+                          className={cn(
+                            "text-lg md:text-xl font-bold",
+                            transaction.isPositive ? "text-green-600" : "text-red-600"
+                          )}
+                        >
+                          Rs {transaction.isPositive ? "+" : "-"}
+                          {Number(transaction.amount).toLocaleString()}
+                        </div>
+                        <Badge
+                          variant={transaction.status === "Success" ? "default" : "secondary"}
+                          className={cn(
+                            "text-xs font-medium",
+                            transaction.status === "Success"
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                          )}
+                        >
+                          {transaction.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </CardContent>
         </Card>
 
-           {/* Summary Statistics */}
+        {/* Summary Statistics */}
         {allTransactions.length > 0 && (
-          <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-sm text-gray-600">Total Transactions</p>
-                  <p className="text-2xl font-bold text-green-600">{allTransactions.length}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Deposits</p>
-                  <p className="text-2xl font-bold text-green-600">Rs {totalDeposits.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Withdrawals</p>
-                  <p className="text-2xl font-bold text-red-600">Rs {totalWithdrawals.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Net Amount</p>
-                  <p className={cn("text-2xl font-bold", netAmount >= 0 ? "text-green-600" : "text-red-600")}>
-                    Rs {netAmount >= 0 ? "+" : ""}{netAmount.toLocaleString()}
-                  </p>
-                </div>
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center p-4">
+              <div>
+                <p className="text-sm text-gray-600">Total Transactions</p>
+                <p className="text-base font-bold text-green-600">{allTransactions.length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total Deposits</p>
+                <p className="text-base font-bold text-green-600">Rs {totalDeposits.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total Withdrawals</p>
+                <p className="text-base font-bold text-red-600">Rs {totalWithdrawals.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Net Amount</p>
+                <p className={cn("text-base font-bold", netAmount >= 0 ? "text-green-600" : "text-red-600")}>
+                  Rs {netAmount >= 0 ? "+" : ""}
+                  {netAmount.toLocaleString()}
+                </p>
               </div>
             </CardContent>
           </Card>

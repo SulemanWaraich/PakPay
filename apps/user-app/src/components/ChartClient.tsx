@@ -15,13 +15,13 @@ export default function ActivityChart() {
   }, [])
 
   return (
-    <div className="w-full h-80 bg-gradient-to-br from-white to-green-50/30 rounded-2xl shadow-lg border border-green-100/50 p-6 backdrop-blur-sm">
+    <div className="w-full h-72 bg-gradient-to-br from-white to-green-50/30 rounded-2xl shadow-lg border border-green-100/50 p-6 mb-2 backdrop-blur-sm">
       <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
         Activity
       </h2>
 
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" className={"pt-2"}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.6} />
           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6b7280" }} />

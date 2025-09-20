@@ -2,7 +2,7 @@
 set -e
 
 echo "Running Prisma migrations with DATABASE_URL..."
-npx prisma migrate deploy
+npm run db:migrate
 
 echo "Starting application with Accelerate..."
 exec "$@"

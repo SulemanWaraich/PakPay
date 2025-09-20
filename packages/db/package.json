@@ -21,7 +21,7 @@
     "typescript": "^5.9.2"
   },
   "scripts": {
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate --no-engine",
     "db:push": "prisma db push --skip-generate",
     "build": "tsc"
   },

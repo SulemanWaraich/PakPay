@@ -25,7 +25,9 @@ jobs:
         file: ./docker/Dockerfile.user
         push: true
         tags: suleman100devx/pakpay:latest  # Replace with your Docker Hub username and repository
-        build-args: DATABASE_URL=${{ secrets.DATABASE_URL }}
+        build-args: |
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          PRISMA_ACCELERATE_URL=${{ secrets.PRISMA_ACCELERATE_URL }}
 
     - name: Verify Pushed Image
       run: docker pull suleman100devx/pakpay:latest  # Replace with your Docker Hub username and repository

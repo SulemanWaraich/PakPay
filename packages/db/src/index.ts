@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 
 const prismaClientSingleton = () => {
+  
   return new PrismaClient({
     // Use Accelerate at runtime
     datasourceUrl: process.env.PRISMA_ACCELERATE_URL ?? process.env.DATABASE_URL,

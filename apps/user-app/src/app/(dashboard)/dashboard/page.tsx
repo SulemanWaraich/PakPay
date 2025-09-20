@@ -33,6 +33,27 @@ export default async function DashboardPage() {
     dailyData[date].p2p += txn.amount
   })
 
+   const allTransactions = [
+    ...onRamps.map((t) => ({ time: t.startTime, amount: t.amount })),
+    ...offRamps.map((t) => ({ time: t.startTime, amount: t.amount })),
+    ...transfers.map((t) => ({ time: t.timestamp, amount: t.amount })),
+  ]
+
+   // 🗓️ Calculate monthly transactions count
+  const now = new Date()
+  const monthlyTransactions = allTransactions.filter((t) => {
+    const d = new Date(t.time)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
+
+  // 💸 Calculate weekly spending
+  const oneWeekAgo = new Date()
+  oneWeekAgo.setDate(now.getDate() - 7)
+  const weeklySpending = allTransactions
+    .filter((t) => new Date(t.time) >= oneWeekAgo)
+    .reduce((sum, t) => sum + t.amount, 0)
+  
+
   const chartData = Object.entries(dailyData)
     .map(([date, values]) => ({ date, ...values }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -65,6 +86,7 @@ export default async function DashboardPage() {
             </Card>
 
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 🔹 Dynamic Monthly Transactions */}
               <Card className="bg-white/80 border border-green-100/50 shadow-md">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-2">
@@ -72,15 +94,16 @@ export default async function DashboardPage() {
                       <div className="w-4 h-4 bg-green-500 rounded"></div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-800">24</p>
+                      <p className="text-lg font-bold text-gray-800">{monthlyTransactions}</p>
                       <p className="text-xs text-gray-600">This Month</p>
                     </div>
                   </div>
                   <h3 className="font-medium text-sm text-gray-800">Total Transactions</h3>
-                  <p className="text-xs text-green-600">+12% from last month</p>
+                  <p className="text-xs text-green-600">Auto-calculated from DB</p>
                 </CardContent>
               </Card>
 
+              {/* 🔹 Dynamic Weekly Spending */}
               <Card className="bg-white/80 border border-green-100/50 shadow-md">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between mb-2">
@@ -88,12 +111,12 @@ export default async function DashboardPage() {
                       <div className="w-4 h-4 bg-blue-500 rounded"></div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-800">$2,450</p>
+                      <p className="text-lg font-bold text-gray-800">${weeklySpending.toLocaleString()}</p>
                       <p className="text-xs text-gray-600">This Week</p>
                     </div>
                   </div>
                   <h3 className="font-medium text-sm text-gray-800">Weekly Spending</h3>
-                  <p className="text-xs text-blue-600">-8% from last week</p>
+                  <p className="text-xs text-blue-600">Auto-calculated from DB</p>
                 </CardContent>
               </Card>
             </div>

@@ -44,6 +44,7 @@ export default async function TransactionsPage({
   // Fetch transactions with filters
   let onrampTx: any[] = []
   let offrampTx: any[] = []
+  let p2pTx: any[] = []
 
   if (!typeFilter || typeFilter === "all" || typeFilter === "deposit") {
     onrampTx = await prisma.onRampTransaction.findMany({
@@ -62,6 +63,19 @@ export default async function TransactionsPage({
         ...(Object.keys(dateFilter).length > 0 && { startTime: dateFilter }),
       },
       orderBy: { startTime: "desc" },
+    })
+  }
+
+  if (!typeFilter || typeFilter === "all" || typeFilter === "p2p") {
+    p2pTx = await prisma.p2pTransfer.findMany({
+      where: {
+        OR: [
+          { fromUserId: Number(session.user.id) },
+          { toUserId: Number(session.user.id) },
+        ],
+        ...(Object.keys(dateFilter).length > 0 && { timestamp: dateFilter }),
+      },
+      orderBy: { timestamp: "desc" },
     })
   }
 
@@ -91,6 +105,21 @@ export default async function TransactionsPage({
       timestamp: tx.startTime,
       rawData: tx,
     })),
+    ...p2pTx.map((tx) => {
+      const isSender = tx.fromUserId === Number(session.user.id)
+      return {
+        id: `p2p-${tx.id}`,
+        type: isSender ? "P2P Sent" : "P2P Received",
+        date: new Date(tx.timestamp).toLocaleDateString(),
+        time: new Date(tx.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        amount: tx.amount,
+        currency: "PKR",
+        status: "Completed",
+        isPositive: !isSender, // Sent = negative, Received = positive
+        timestamp: tx.timestamp,
+        rawData: tx,
+      }
+    }),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   // Calculate statistics
@@ -102,11 +131,11 @@ export default async function TransactionsPage({
   const hasActiveFilters = typeFilter || startDate || endDate
 
   return (
-    <div className="min-h-screen bg-gray-50 w-screen">
-      <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
+    <div className="min-h-screen bg-gray-50 w-full">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Page Header */}
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
+          <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
             Transactions
           </h1>
           <p className="text-gray-600">Track and manage your financial activities</p>
@@ -114,12 +143,6 @@ export default async function TransactionsPage({
 
         {/* Filter Section */}
         <Card className="pt-4">
-          {/* <CardHeader className="pb-3">
-            <CardTitle className="text-md text-green-700 flex items-center gap-2">
-              <Filter className="h-3 w-3" />
-              Filters & Export
-            </CardTitle>
-          </CardHeader> */}
           <CardContent>
             <FilterForm
               currentType={typeFilter}
@@ -133,7 +156,7 @@ export default async function TransactionsPage({
                 <span className="text-sm font-medium text-gray-700">Active filters:</span>
                 {typeFilter && typeFilter !== "all" && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Type: {typeFilter === "deposit" ? "Deposits" : "Withdrawals"}
+                    Type: {typeFilter === "deposit" ? "Deposits" : typeFilter === "withdrawal" ? "Withdrawals" : "P2P"}
                   </Badge>
                 )}
                 {startDate && (
@@ -152,16 +175,17 @@ export default async function TransactionsPage({
         </Card>
 
         {/* Transactions List */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="pt-4 overflow-hidden">
+          {/* Responsive Header */}
+          <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-lg text-green-700 flex items-center gap-2">
               Transaction History
-              <div className="ml-auto">
-                <ExportButton transactions={allTransactions} />
-              </div>
             </CardTitle>
+            <ExportButton transactions={allTransactions} />
           </CardHeader>
-          <CardContent className="space-y-3">
+
+          {/* Responsive Transactions */}
+          <CardContent className="px-3 sm:px-6 space-y-3">
             {allTransactions.length === 0 ? (
               <Card className="p-12 text-center border-dashed border-green-200">
                 <div className="text-green-600 mb-2">
@@ -178,63 +202,59 @@ export default async function TransactionsPage({
               </Card>
             ) : (
               allTransactions.map((transaction) => (
-                <Card
+                <div
                   key={transaction.id}
-                  className="hover:shadow-md transition-all duration-200 border-green-100 hover:border-green-200"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border p-3 hover:bg-gray-50"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center shadow-md",
-                            transaction.isPositive
-                              ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                              : "bg-gradient-to-br from-red-500 to-rose-600"
-                          )}
-                        >
-                          {transaction.isPositive ? (
-                            <ArrowDownLeft className="h-5 w-5 text-white" />
-                          ) : (
-                            <ArrowUpRight className="h-5 w-5 text-white" />
-                          )}
-                        </div>
-
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-gray-900 text-sm md:text-base">{transaction.type}</div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Calendar className="h-3 w-3" />
-                            {transaction.date}, {transaction.time}
-                          </div>
-                          <div className="text-xs text-gray-600">{transaction.currency}</div>
-                        </div>
-                      </div>
-
-                      <div className="text-right space-y-1">
-                        <div
-                          className={cn(
-                            "text-lg md:text-xl font-bold",
-                            transaction.isPositive ? "text-green-600" : "text-red-600"
-                          )}
-                        >
-                          Rs {transaction.isPositive ? "+" : "-"}
-                          {Number(transaction.amount).toLocaleString()}
-                        </div>
-                        <Badge
-                          variant={transaction.status === "Success" ? "default" : "secondary"}
-                          className={cn(
-                            "text-xs font-medium",
-                            transaction.status === "Success"
-                              ? "bg-green-100 text-green-700 hover:bg-green-200"
-                              : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                          )}
-                        >
-                          {transaction.status}
-                        </Badge>
-                      </div>
+                  {/* Left side */}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "p-2 rounded-full",
+                        transaction.isPositive
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
+                      )}
+                    >
+                      {transaction.isPositive ? (
+                        <ArrowDownLeft className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4" />
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <div>
+                      <p className="text-sm font-medium">{transaction.type}</p>
+                      <p className="text-xs text-gray-500">
+                        {transaction.date}, {transaction.time}
+                      </p>
+                      <p className="text-xs text-gray-600">{transaction.currency}</p>
+                    </div>
+                  </div>
+
+                  {/* Right side */}
+                  <div className="flex items-center gap-3 sm:text-right">
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        transaction.isPositive ? "text-green-600" : "text-red-600"
+                      )}
+                    >
+                      {transaction.isPositive ? "+" : "-"}Rs {Number(transaction.amount).toLocaleString()}
+                    </p>
+                    <Badge
+                      className={cn(
+                        "text-xs px-2 py-0.5",
+                        transaction.status === "Success"
+                          ? "bg-green-100 text-green-700"
+                          : transaction.status === "Failed"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      )}
+                    >
+                      {transaction.status}
+                    </Badge>
+                  </div>
+                </div>
               ))
             )}
           </CardContent>

@@ -44,10 +44,10 @@ export default async function Page() {
       <main className="px-6 py-16">
         <div className="max-w-7xl mx-auto">
           <div className="bg-green-100 rounded-3xl p-12 lg:p-16 relative overflow-hidden">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
               {/* Left Content */}
               <div className="space-y-8">
-                <h1 className="text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
+                <h1 className="sm:text-6xl text-4xl lg:text-7xl font-bold text-gray-900 leading-tight">
                   Fast, safe
                   <br />
                   social
@@ -55,15 +55,15 @@ export default async function Page() {
                   payments
                 </h1>
 
-                <p className="text-xl text-gray-700 leading-relaxed max-w-md">
+                <p className="sm:text-xl text-lg text-gray-700 leading-relaxed max-w-md ">
                   Pay, get paid, grow a business, and more. Join the millions of
                   people on PakPay.
                 </p>
 
                 {session?.user ? (
                   <Link href="/dashboard">
-                    <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg rounded-full font-semibold flex items-center gap-3 shadow-lg">
-                      <span className="bg-white text-green-600 w-8 h-8 rounded-full flex items-center justify-center font-bold">
+                    <Button className="bg-green-600 hover:bg-green-700 text-white sm:px-8 sm:py-6 px-4 py-3  sm:text-lg text-base rounded-full font-semibold flex items-center gap-3 shadow-lg mt-3">
+                      <span className="bg-white text-green-600 sm:w-8 sm:h-8 w-5 h-5 rounded-full flex items-center justify-center font-bold">
                         →
                       </span>
                       Go to Dashboard
@@ -94,7 +94,7 @@ export default async function Page() {
                 </div>
 
                 {/* Payment Notification Overlay */}
-                <div className="absolute bottom-4 right-4 bg-white rounded-2xl p-4 shadow-xl border border-gray-100 max-w-xs">
+                <div className="absolute bottom-4 right-4 bg-white rounded-2xl sm:p-4 p-2 shadow-xl border border-gray-100 max-w-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-green-100">
                       <Image

@@ -24,7 +24,7 @@ export default async function TransferPage() {
   return (
     <div className="w-screen">
 
-    <div className="mb-4 sm:text-left text-center">
+    <div className="mb-4 sm:text-left ">
 
       <div className="sm:text-4xl text-2xl text-green-600 pt-8 font-bold ml-4 mb-1">
                Transfer

@@ -65,11 +65,11 @@ export default async function DashboardPage() {
       <main className="flex-1 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Greeting */}
-          <div className="mb-6 sm:text-left text-center">
+          <div className="mb-6 sm:text-left ">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+              <div className="sm:w-2 sm:h-2 w-2 h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
               <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Good afternoon, Suleman
+                Good Afternoon, Suleman
               </h1>
             </div>
             <p className="text-gray-600 text-sm ml-4">Welcome back to your financial dashboard</p>

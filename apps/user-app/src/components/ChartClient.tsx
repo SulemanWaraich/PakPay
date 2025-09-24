@@ -34,7 +34,25 @@ export default function ActivityChart() {
               boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
             }}
           />
-          <Legend wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }} iconSize={10} iconType="circle" align="center" layout="horizontal" />
+
+          {/* <Legend wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }} iconSize={10} iconType="circle" align="center" layout="horizontal" /> */}
+
+          <Legend
+            content={({ payload }) => (
+              <div className="hidden sm:flex justify-center gap-4 text-sm ">
+                {payload?.map((entry, index) => (
+                  <div key={`item-${index}`} className="flex items-center gap-1 ">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: entry.color }}
+                    ></span>
+                    {entry.value}
+                  </div>
+                )) ?? null}
+              </div>
+            )}
+          />
+
 
           {/* Background area for spending
           <Area type="monotone" dataKey="spend" stroke="none" fill="rgba(79,70,229,0.1)" /> */}

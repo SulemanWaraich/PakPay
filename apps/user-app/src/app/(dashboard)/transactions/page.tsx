@@ -133,10 +133,10 @@ export default async function TransactionsPage({
   return (
     <div className="min-h-screen bg-gray-50 w-full">
 
-      <div className="max-w-6xl mx-auto sm:p-6 space-y-6 sm:w-[100%] w-[75%]">
+      <div className="max-w-6xl sm:mx-auto ml-4 sm:p-6 space-y-6 sm:w-[100%] w-[88%]">
         {/* Page Header */}
         <div className="sm:text-left text-center">
-          <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
+          <h1 className="pt-4 text-2xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
             Transactions
           </h1>
           <p className="text-gray-600 sm:text-md text-sm">Track and manage your financial activities</p>
@@ -176,10 +176,10 @@ export default async function TransactionsPage({
         </Card>
 
         {/* Transactions List */}
-        <Card className="pt-4 overflow-hidden">
+        <Card className=" overflow-hidden">
           {/* Responsive Header */}
           <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <CardTitle className="text-lg text-green-700 flex items-center gap-2">
+            <CardTitle className="sm:text-lg text-sm text-green-700 flex items-center gap-2">
               Transaction History
             </CardTitle>
             

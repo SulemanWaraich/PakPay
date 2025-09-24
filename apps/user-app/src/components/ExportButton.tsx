@@ -74,7 +74,12 @@ export default function ExportButton({ transactions }: ExportButtonProps) {
       disabled={transactions.length === 0}
     >
       <Download className="sm:h-4 sm:w-4 sm:mr-2" />
-      Export {transactions.length} transactions
+      {/* Mobile only */}
+      <span className="sm:hidden">Export</span>
+      {/* Desktop only */}
+      <span className="hidden sm:inline">
+        Export {transactions.length} transactions
+      </span>
     </Button>
   )
 }

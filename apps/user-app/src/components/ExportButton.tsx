@@ -70,11 +70,11 @@ export default function ExportButton({ transactions }: ExportButtonProps) {
     <Button 
       onClick={exportToCSV}
       variant="outline"
-      className="border-green-300 text-green-700 hover:bg-green-50"
+      className="border-green-300 text-green-700 hover:bg-green-50 max-w-44 text-xs"
       disabled={transactions.length === 0}
     >
-      <Download className="h-4 w-4 mr-2" />
-      Export to CSV ({transactions.length} transactions)
+      <Download className="sm:h-4 sm:w-4 sm:mr-2" />
+      Export {transactions.length} transactions
     </Button>
   )
 }

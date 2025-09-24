@@ -24,13 +24,13 @@ export default async function TransferPage() {
   return (
     <div className="w-screen">
 
-    <div className="mb-4">
+    <div className="mb-4 sm:text-left text-center">
 
-      <div className="text-4xl text-green-600 pt-8 font-bold ml-4 mb-1">
+      <div className="sm:text-4xl text-2xl text-green-600 pt-8 font-bold ml-4 mb-1">
                Transfer
            </div>
           
-           <p className="text-gray-600 text-md ml-5">Move your money securely and instantly</p>
+           <p className="text-gray-600 sm:text-md text-sm ml-5">Move your money securely and instantly</p>
     </div>
      <TransferContent balance={balance} onrampTx={onrampTx} offrampTx={offrampTx} />
     </div>

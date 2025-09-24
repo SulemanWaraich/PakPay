@@ -132,13 +132,14 @@ export default async function TransactionsPage({
 
   return (
     <div className="min-h-screen bg-gray-50 w-full">
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
+
+      <div className="max-w-6xl mx-auto sm:p-6 space-y-6 sm:w-[100%] w-[75%]">
         {/* Page Header */}
-        <div>
-          <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
+        <div className="sm:text-left text-center">
+          <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
             Transactions
           </h1>
-          <p className="text-gray-600">Track and manage your financial activities</p>
+          <p className="text-gray-600 sm:text-md text-sm">Track and manage your financial activities</p>
         </div>
 
         {/* Filter Section */}
@@ -181,7 +182,9 @@ export default async function TransactionsPage({
             <CardTitle className="text-lg text-green-700 flex items-center gap-2">
               Transaction History
             </CardTitle>
-            <ExportButton transactions={allTransactions} />
+            
+              <ExportButton transactions={allTransactions} />
+            
           </CardHeader>
 
           {/* Responsive Transactions */}
@@ -287,6 +290,7 @@ export default async function TransactionsPage({
           </Card>
         )}
       </div>
+
     </div>
   )
 }

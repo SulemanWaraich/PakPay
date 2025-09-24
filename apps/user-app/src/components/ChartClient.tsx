@@ -34,32 +34,32 @@ export default function ActivityChart() {
               boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
             }}
           />
-          <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="circle" />
+          <Legend wrapperStyle={{ paddingTop: "10px", fontSize: "12px" }} iconSize={10} iconType="circle" align="center" layout="horizontal" />
 
-          {/* Background area for spending */}
-          <Area type="monotone" dataKey="spend" stroke="none" fill="rgba(79,70,229,0.1)" />
+          {/* Background area for spending
+          <Area type="monotone" dataKey="spend" stroke="none" fill="rgba(79,70,229,0.1)" /> */}
 
           {/* Spending Line (Outgoing) */}
           <Line
-    type="monotone"
-    dataKey="offRamp"
-    name="OffRamp"
-    stroke="#4f46e5"
-    strokeWidth={3}
-    dot={{ r: 5, fill: "#4f46e5", stroke: "#fff", strokeWidth: 2 }}
-    activeDot={{ r: 7, stroke: "#4f46e5", strokeWidth: 2, fill: "#fff" }}
-  />
+            type="monotone"
+            dataKey="offRamp"
+            name="OffRamp"
+            stroke="#4f46e5"
+            strokeWidth={3}
+            dot={{ r: 5, fill: "#4f46e5", stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 7, stroke: "#4f46e5", strokeWidth: 2, fill: "#fff" }}
+          />
 
-  {/* P2P Line */}
-  <Line
-    type="monotone"
-    dataKey="p2p"
-    name="P2P"
-    stroke="#9333ea"
-    strokeWidth={3}
-    dot={{ r: 5, fill: "#9333ea", stroke: "#fff", strokeWidth: 2 }}
-    activeDot={{ r: 7, stroke: "#9333ea", strokeWidth: 2, fill: "#fff" }}
-  />
+          {/* P2P Line */}
+          <Line
+            type="monotone"
+            dataKey="p2p"
+            name="P2P"
+            stroke="#9333ea"
+            strokeWidth={3}
+            dot={{ r: 5, fill: "#9333ea", stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 7, stroke: "#9333ea", strokeWidth: 2, fill: "#fff" }}
+          />
           {/* OnRamp Line (Incoming) */}
           <Line
             type="monotone"

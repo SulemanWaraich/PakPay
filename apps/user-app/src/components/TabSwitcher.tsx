@@ -20,7 +20,7 @@ export const TabsSwitcher = ({ tab, setTab }: Props) => {
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
         <button
-          className={`px-4 py-2 rounded ${
+          className={`sm:px-4 sm:py-2 px-2 py-1 rounded sm:text-base text-sm ${
             tab === "deposit" ? "bg-green-600 text-white" : "bg-white border"
           }`}
           onClick={() => setTab("deposit")}
@@ -28,7 +28,7 @@ export const TabsSwitcher = ({ tab, setTab }: Props) => {
           Deposit
         </button>
         <button
-          className={`px-4 py-2 rounded ${
+          className={`sm:px-4 sm:py-2 px-2 py-1 rounded  sm:text-base text-sm ${
             tab === "withdraw" ? "bg-green-600 text-white" : "bg-white border"
           }`}
           onClick={() => setTab("withdraw")}

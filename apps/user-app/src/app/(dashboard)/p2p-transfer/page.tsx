@@ -20,11 +20,11 @@ async function getp2pTransaction(){
 export default async function() {
   const transactions = await getp2pTransaction();
   return <div className="w-screen">
-    <div className="mb-4">
-       <div className="text-4xl text-green-600 pt-8 font-bold ml-4 mb-1">
+    <div className="mb-4 sm:text-left text-center">
+       <div className="sm:text-4xl text-2xl text-green-600 pt-8 font-bold ml-4 mb-1">
               P2P Transfer
           </div>
-          <p className="text-gray-600 text-md ml-4">Fast, secure, and hassle-free peer payments</p>
+          <p className="text-gray-600 sm:text-md text-sm ml-4">Fast, secure, and hassle-free peer payments</p>
     </div>
          
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4">

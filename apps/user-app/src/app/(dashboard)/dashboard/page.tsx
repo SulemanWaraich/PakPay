@@ -65,10 +65,10 @@ export default async function DashboardPage() {
       <main className="flex-1 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Greeting */}
-          <div className="mb-6">
+          <div className="mb-6 sm:text-left text-center">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Good afternoon, Suleman
               </h1>
             </div>
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
             <Card className="lg:col-span-1 bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-lg text-white">
               <CardContent className="p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-green-100 mb-1">Portfolio Value</p>
-                <p className="text-3xl font-bold mb-1">${balance?.amount ?? 0}</p>
+                <p className="sm:text-3xl text-xl font-bold mb-1">${balance?.amount ?? 0}</p>
                 <span className="text-xs text-green-100">Total Balance</span>
               </CardContent>
             </Card>

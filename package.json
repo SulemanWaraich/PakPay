@@ -10,8 +10,8 @@
     "db:generate": "cd packages/db && npx prisma generate && cd ../..",
     "db:migrate": "cd packages/db && npx prisma migrate deploy --schema=./prisma/schema.prisma && cd ../..",
     "db:generate:no-engine": "cd packages/db && npx prisma generate --no-engine && cd ../..",
-    "start-user-app": "cd ./apps/user-app && npm run start"
-
+    "start-user-app": "cd ./apps/user-app && npm run start",
+    "start-bank-webhook": "cd ./apps/bank-webhook && npm run start"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

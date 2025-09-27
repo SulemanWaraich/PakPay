@@ -14,7 +14,7 @@ export const SendMoneyCard = () => {
 
     return <Card title="Send Money">
     <div className="w-full p-2">
-        <TextInput label={"Number"} placeholder={"Number"} onChange={(value) => setNumber(value)} />
+        <TextInput label={"Account Number"} placeholder={"Acc Number"} onChange={(value) => setNumber(value)} />
         <TextInput label={"Amount"} placeholder={"Amount"} onChange={(value) => setAmount(value)} />
         <div className="flex justify-center pt-4">
             <Button onClick={async () =>{ await p2pTransfer(number, Number(amount) * 100 ) }}>

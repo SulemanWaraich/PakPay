@@ -2,17 +2,25 @@
 import { Card, CardContent } from "../../../components/ui/card"
 import prisma from "@repo/db"
 import ActivityChart from "../../../components/ChartClient"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../../lib/auth"
+import { formatDistanceToNow } from "date-fns";
 
 export default async function DashboardPage() {
+  const userSession = await getServerSession(authOptions);
+  
+  console.log(userSession)
+
   const onRamps = await prisma.onRampTransaction.findMany({
-    where: { status: "Success" },
+    where: { userId: Number(userSession.user.id) },
     orderBy: { startTime: "asc" },
   })
   const offRamps = await prisma.offRampTransaction.findMany({
-    where: { status: "Success" },
+    where: { userId: Number(userSession.user.id) },
     orderBy: { startTime: "asc" },
   })
   const transfers = await prisma.p2pTransfer.findMany({
+    where: {fromUserId: Number(userSession.user.id)},
     orderBy: { timestamp: "asc" },
   })
 
@@ -58,18 +66,22 @@ export default async function DashboardPage() {
     .map(([date, values]) => ({ date, ...values }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-  const balance = await prisma.balance.findFirst({ where: { userId: 1 } })
+  const balance = await prisma.balance.findFirst({ where: { userId: Number(userSession.user.id) } })
+  const user = await prisma.user.findFirst({where: {id: Number(userSession.user.id)}})
+
+  console.log(user?.name, balance?.amount)
+
 
   return (
     <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
       <main className="flex-1 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Greeting */}
-          <div className="mb-6 sm:text-left ">
+          <div className="mb-6 sm:text-left mt-2">
             <div className="flex items-center gap-2 mb-1">
               <div className="sm:w-2 sm:h-2 w-2 h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
               <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Good Afternoon, Suleman
+                Good Afternoon, {user?.name ?? 'NA'}
               </h1>
             </div>
             <p className="text-gray-600 text-sm ml-4">Welcome back to your financial dashboard</p>
@@ -137,9 +149,9 @@ export default async function DashboardPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { type: "OnRamp", amount: "+$500", time: "2 hours ago", color: "green" },
-                { type: "Transfer", amount: "-$150", time: "5 hours ago", color: "blue" },
-                { type: "P2P", amount: "-$75", time: "1 day ago", color: "purple" },
+                { type: "OnRamp", amount: allTransactions[0]?.amount, time: allTransactions[0]?.time, color: "green" },
+                { type: "Transfer", amount: allTransactions[1]?.amount, time: allTransactions[1]?.time, color: "blue" },
+                { type: "P2P", amount: allTransactions[2]?.amount, time: allTransactions[3]?.time, color: "purple" },
               ].map((activity, i) => (
                 <Card key={i} className="bg-white/80 border border-gray-100/50 shadow-sm">
                   <CardContent className="p-3">
@@ -165,14 +177,14 @@ export default async function DashboardPage() {
                       </div>
                       <span
                         className={`text-sm font-semibold ${
-                          activity.amount.startsWith("+") ? "text-green-600" : "text-gray-700"
+                          activity?.amount?.toString() ? "text-green-600" : "text-gray-700"
                         }`}
                       >
-                        {activity.amount}
+                        {activity?.amount || 0}
                       </span>
                     </div>
                     <h3 className="font-medium text-sm text-gray-800">{activity.type}</h3>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
+                    <p className="text-xs text-gray-500">{activity?.time ? formatDistanceToNow(activity.time, { addSuffix: true }) : "No activity yet"  }</p>
                   </CardContent>
                 </Card>
               ))}

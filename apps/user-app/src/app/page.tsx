@@ -82,7 +82,7 @@ export default async function Page() {
               </div>
 
               {/* Right Content - Image with Payment Notification */}
-              <div className="relative">
+              <div className="relative sm:w-full w-64 ">
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                   <Image
                     src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f"
@@ -94,7 +94,7 @@ export default async function Page() {
                 </div>
 
                 {/* Payment Notification Overlay */}
-                <div className="absolute bottom-4 right-4 bg-white rounded-2xl sm:p-4 p-2 shadow-xl border border-gray-100 max-w-xs">
+                <div className="absolute bottom-3 right-4 left-4 bg-white rounded-2xl sm:p-4 p-2 shadow-xl border border-gray-100 max-w-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-green-100">
                       <Image

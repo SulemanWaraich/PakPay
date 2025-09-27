@@ -1,3 +1,5 @@
+"use client"
+import { useState } from "react";
 import { SidebarItem } from "../../components/SidebarItem";
 
 export default function Layout({
@@ -5,9 +7,27 @@ export default function Layout({
 }: {
   children: React.ReactNode;
 }): JSX.Element {
+  const [isOpen, setIsOpen] = useState(false);
+  
   return (
     <div className="flex">
-        <div className="sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28">
+       <button
+        className="sm:hidden px-3 py-1 absolute top-14 left-1 z-50 bg-green-600 text-white rounded-md"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        ☰
+      </button>
+     {/* Overlay for mobile (click to close) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0  z-30 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <div
+        className={`absolute sm:static top-16 left-0 h-full sm:h-auto transition-transform duration-300 z-40 bg-white border-slate-300
+        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28`}>
             <div className="sm:w-52 w-28">
                 <SidebarItem href={"/dashboard"} icon={<HomeIcon />} title="Home" />
                 <SidebarItem href={"/transfer"} icon={<TransferIcon />} title="Transfer" />

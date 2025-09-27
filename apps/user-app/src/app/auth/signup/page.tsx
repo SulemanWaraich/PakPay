@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [number, setNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +19,7 @@ export default function SignupPage() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, number, password }),
+      body: JSON.stringify({ email, number, password, name }),
     });
 
     const data = await res.json();
@@ -48,12 +49,23 @@ export default function SignupPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
           {/* Logo */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-green-600 mb-6">venmo</h1>
+            <h1 className="text-3xl font-bold text-green-600 mb-6">PakPay</h1>
             <h2 className="text-2xl font-semibold text-gray-900 mb-8">Sign up</h2>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Input
+                type="name"
+                placeholder="Enter Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
+                required
+              />
+            </div>
+
             <div>
               <Input
                 type="email"

@@ -27,7 +27,7 @@ export default function SignInPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
           {/* Logo */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-green-600 mb-6">venmo</h1>
+            <h1 className="text-3xl font-bold text-green-600 mb-6">PakPay</h1>
             <h2 className="text-2xl font-semibold text-gray-900 mb-8">Log in</h2>
           </div>
 

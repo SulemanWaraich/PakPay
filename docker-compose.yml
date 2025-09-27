@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  user-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.user
+    ports:
+      - "3005:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PRISMA_ACCELERATE_URL: ${PRISMA_ACCELERATE_URL}
+
+  bank-webhook:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bank-webhook
+    ports:
+      - "4000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}

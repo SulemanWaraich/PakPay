@@ -77,10 +77,10 @@ export default async function DashboardPage() {
       <main className="flex-1 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Greeting */}
-          <div className="mb-6 sm:text-left mt-2">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="mb-6 sm:text-left mt-2 text-center">
+            <div className="flex items-center sm:flex-row flex-col gap-2 mb-1">
               <div className="sm:w-2 sm:h-2 w-2 h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
-              <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent text-center">
                 Good Afternoon, {user?.name ?? 'NA'}
               </h1>
             </div>

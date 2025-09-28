@@ -1,17 +1,40 @@
-FROM node:20.12.0-alpine3.19
+# ------------------------------
+# Stage 1: Builder
+# ------------------------------
+FROM node:20.12.0-alpine3.19 AS builder
 
 WORKDIR /usr/src/app
 
+# Copy package files first for caching
 COPY package.json package-lock.json turbo.json ./
+
+# Install all dependencies (dev + prod)
+RUN npm install
+
+# Copy full source code
 COPY apps ./apps
 COPY packages ./packages
 
-RUN npm install
-
-# Only generate client
+# Generate Prisma client
 RUN npm run db:generate
 
 # Build only bank-webhook
 RUN npm run build --filter=bank-webhook...
 
-CMD ["npm", "run", "start-bank-webhook"]
+# ------------------------------
+# Stage 2: Production
+# ------------------------------
+FROM node:20.12.0-alpine3.19
+
+WORKDIR /usr/src/app
+
+# Copy only production dependencies
+COPY package.json package-lock.json ./
+RUN npm install --only=production
+
+# Copy built app & Prisma client from builder
+COPY --from=builder /usr/src/app/apps/bank-webhook/dist ./apps/bank-webhook/dist
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+
+# Start the app
+CMD ["node", "apps/bank-webhook/dist/index.js"]

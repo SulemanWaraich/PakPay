@@ -1,40 +1,23 @@
-# ------------------------------
-# Stage 1: Builder
-# ------------------------------
-FROM node:20.12.0-bullseye-slim AS builder
+FROM node:20.12.0-alpine3.19
 
 WORKDIR /usr/src/app
 
-COPY package.json package-lock.json turbo.json ./
-RUN npm install
+# Accept DATABASE_URL only (webhook doesn't need Prisma Accelerate)
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 
+COPY package.json package-lock.json turbo.json ./
 COPY apps ./apps
 COPY packages ./packages
 
-# Generate Prisma client
-RUN npm run db:generate
+# Install deps
+RUN npm install
 
-# Build bank-webhook
+# Generate Prisma client (no-engine for prod)
+RUN npm run db:generate:no-engine
+
+# Build webhook app
 RUN npm run build --filter=bank-webhook...
 
-# ------------------------------
-# Stage 2: Production
-# ------------------------------
-FROM node:20.12.0-bullseye-slim
-
-WORKDIR /usr/src/app
-
-# Install production deps
-COPY package.json package-lock.json ./
-RUN npm install --only=production
-
-# Install openssl & libc (needed by Prisma engine)
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Copy built app & Prisma
-COPY --from=builder /usr/src/app/apps/bank-webhook/dist ./apps/bank-webhook/dist
-COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
-
-# Start app
-CMD ["node", "apps/bank-webhook/dist/index.js"]
+# Start webhook directly (no entrypoint needed)
+CMD ["npm", "run", "start-bank-webhook"]

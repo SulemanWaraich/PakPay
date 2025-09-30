@@ -60,4 +60,4 @@ jobs:
           sudo docker pull suleman100devx/pakpay-bank-webhook:latest
           sudo docker stop bank-webhook || true
           sudo docker rm bank-webhook || true
-          sudo docker run -d --name bank-webhook --restart always -p 4000:3000 --env-file .env suleman100devx/pakpay-bank-webhook:latest
+          sudo docker run -d --name bank-webhook --restart always -p 4000:3003 --env-file .env suleman100devx/pakpay-bank-webhook:latest

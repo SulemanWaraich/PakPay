@@ -6,9 +6,8 @@ services:
       dockerfile: docker/Dockerfile.user
     ports:
       - "3005:3000"
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      PRISMA_ACCELERATE_URL: ${PRISMA_ACCELERATE_URL}
+    env_file:
+      - ./packages/db/.env
 
   bank-webhook:
     build:
@@ -16,5 +15,5 @@ services:
       dockerfile: docker/Dockerfile.bank-webhook
     ports:
       - "4000:3000"
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./packages/db/.env

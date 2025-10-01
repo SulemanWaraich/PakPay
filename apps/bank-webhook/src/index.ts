@@ -90,4 +90,6 @@ app.post("/withdrawWebHook", async (req, res) => {
   }
 });
 
-app.listen(3003);
+app.listen(3003, "0.0.0.0", () => {
+  console.log("Bank Webhook running on http://0.0.0.0:3003");
+});

@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Call the webhook container internally (use the container name or internal network)
-    const resp = await fetch("http://webhook:3003/withdrawWebHook", {
+    const resp = await fetch("http://bank-webhook:3003/withdrawWebHook", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

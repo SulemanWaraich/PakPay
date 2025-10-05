@@ -18,7 +18,7 @@ export const OnRampTransactions = ({
             </div>
         </Card>
     }
-    return  <Card title="Recent Transactions">
+    return  <Card title="Recent Deposits">
     <div className="pt-2 ">
             {transactions.map((t, i) => 
             <div key={i} className="flex justify-between py-2 border-b last:border-b-0">

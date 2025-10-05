@@ -8,6 +8,7 @@ import { CreateOnRampTransaction } from "../app/lib/actions/CreateOnRamptxn"
 import { BankPaymentModal } from "./BankPaymentModal"
 import { type BankKey, bankThemes } from "./bank-themes"
 import { useRouter } from "next/navigation"
+import { showToast } from "../app/lib/toastMessage";
 
 // Limit to requested banks
 const BANK_KEYS: BankKey[] = ["HBL", "UBL", "MEEZAN"]
@@ -26,14 +27,50 @@ export const AddMoney = () => {
   // }
 
   const persist = async () => {
-    // Create a processing withdrawal record using existing API
-    await fetch("/api/create-onramp", {
+  try {
+    const res = await fetch("/api/create-onramp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount, bank: bankThemes[bankKey].displayName }),
-    })
-  }
+    });
 
+    if (!res.ok) throw new Error("Failed to record transaction");
+
+    const data = await res.json();
+    showToast(
+      "success",
+      `Transaction initialized successfully for PKR ${amount}.`
+    );
+
+    console.log(res, data);
+
+    // Trigger dummy-bank webhook asynchronously after a short delay
+    (async () => {
+      const delay = (min: number, max: number) =>
+        new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min));
+
+      await delay(2000, 5000); // random delay 2-5s
+
+      try {
+        await fetch("/api/onramp-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            token: data.transaction.token,
+            userId: data.transaction.id,
+          }),
+        });
+        console.log("✅ Dummy bank-webhook triggered for Add Money");
+      } catch (webhookError) {
+        console.error("❌ Failed to trigger dummy bank-webhook:", webhookError);
+      }
+    })();
+
+  } catch (error) {
+    showToast("error", "Failed to record transaction. Please try again.");
+  }
+};
   return (
     <Card title="Add Money">
       <div className="w-full p-2">
@@ -53,9 +90,15 @@ export const AddMoney = () => {
         <div className="flex justify-center pt-4">
           <Button
             onClick={() => {
-              if (amount > 0) {
-                setOpen(true)
+              if (amount <= 0) {
+                showToast("warning", "Please enter a valid amount to deposit.");
+                return;
               }
+              showToast(
+                "info",
+                `Opening ${bankThemes[bankKey].displayName} payment modal...`
+              );
+              setOpen(true);
             }}
           >
             Deposit Money

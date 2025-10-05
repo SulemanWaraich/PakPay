@@ -3,6 +3,7 @@ import { Button, Card, Select, TextInput } from "@repo/ui"
 import { useMemo, useState } from "react"
 import { BankPaymentModal } from "./BankPaymentModal"
 import { type BankKey, bankThemes } from "./bank-themes"
+import { showToast } from "../app/lib/toastMessage"
 
 const BANK_KEYS: BankKey[] = ["HBL", "UBL", "MEEZAN"]
 
@@ -14,12 +15,59 @@ export const WithdrawMoney = () => {
   const options = useMemo(() => BANK_KEYS.map((k) => ({ key: k, value: bankThemes[k].displayName })), [])
 
   const persist = async () => {
-    // Create a processing withdrawal record using existing API
-    await fetch("/api/create-offramp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, bank: bankThemes[bankKey].displayName }),
-    })
+    try {
+      if (amount <= 0) {
+        showToast("warning", "Please enter a valid withdrawal amount.")
+        return
+      }
+
+      showToast("info", "Processing your withdrawal request...")
+
+      const res = await fetch("/api/create-offramp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, bank: bankThemes[bankKey].displayName }),
+      })
+
+       if (!res.ok) throw new Error("Failed to record transaction");
+
+      
+    const data = await res.json();
+    showToast(
+      "success",
+      `Transaction initialized successfully for PKR ${amount}.`
+    );
+
+    console.log(res, data);
+
+
+      
+    // Trigger dummy-bank webhook asynchronously after a short delay
+    (async () => {
+      const delay = (min: number, max: number) =>
+        new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min));
+
+      await delay(2000, 5000); // random delay 2-5s
+
+      try {
+        await fetch("/api/offramp-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            token: data.transaction.token,
+            userId: data.transaction.id,
+          }),
+        });
+        console.log("✅ Dummy bank-webhook triggered for Add Money");
+      } catch (webhookError) {
+        console.error("❌ Failed to trigger dummy bank-webhook:", webhookError);
+      }
+    })();
+
+    } catch (error) {
+      showToast("error", "Something went wrong while processing your withdrawal.")
+    }
   }
 
   return (
@@ -34,8 +82,13 @@ export const WithdrawMoney = () => {
 
         <div className="flex justify-center pt-4">
           <Button
-            onClick={() => {
-              if (amount > 0) setOpen(true)
+             onClick={() => {
+              if (amount > 0) {
+                showToast("info", "Preparing withdrawal confirmation...")
+                setOpen(true)
+              } else {
+                showToast("warning", "Enter amount before proceeding.")
+              }
             }}
           >
             Withdraw Money

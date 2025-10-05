@@ -7,6 +7,9 @@ import { AppbarClient } from "../components/AppbarClient";
 import Script from "next/script";
 import AnalyticsProvider from "../components/AnalyticsProvider"; // we'll create this below
 import { Suspense } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -52,6 +55,18 @@ export default function RootLayout({
             </Suspense>
           {children}
         </Providers>
+
+           {/* ✅ Toast Container (globally accessible) */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { showToast } from "../../lib/toastMessage";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -15,31 +16,45 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    const res = await fetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, number, password, name }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert("❌ " + (data.error || "Signup failed"));
+    
+    // ⚠️ Check for empty fields
+    if (!name || !email || !number || !password) {
+      showToast("warn", "Please fill in all fields.");
       return;
     }
 
-    // ✅ Auto-login after successful signup
-    const loginRes = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, number, password, name }),
+      });
 
-    if (loginRes?.ok) {
-      router.push("/dashboard"); // ✅ direct dashboard
-    } else {
-      router.push("/auth/signin"); // fallback
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast("error", data.error || "Signup failed. Please try again.");
+        return;
+      }
+
+      showToast("success", "Account created successfully! Logging you in...");
+
+      // ✅ Auto-login after successful signup    
+      const loginRes = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (loginRes?.ok) {
+        showToast("success", "Welcome to PakPay! Redirecting to dashboard...");
+        router.push("/dashboard");
+      } else {
+        showToast("info", "Account created. Please log in to continue.");
+        router.push("/auth/signin");
+      }
+    } catch (error) {
+      showToast("error", "Something went wrong. Please try again later.");
     }
   }
 

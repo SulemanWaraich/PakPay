@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { bankThemes, type BankKey } from "./bank-themes"
 import { useRouter } from "next/navigation"
 import { Button } from "@repo/ui"
+import { showToast } from "../app/lib/toastMessage";
 
 type Mode = "deposit" | "withdraw"
 
@@ -48,29 +49,47 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
     if (!expiry) next.expiry = "Expiry is required"
     if (expiry && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) next.expiry = "Use MM/YY format"
     setErrors(next)
-    return Object.keys(next).length === 0
+    // return Object.keys(next).length === 0
+
+     if (Object.keys(next).length > 0) {
+      showToast("warning", "Please fix the form errors before proceeding.");
+      return false;
+    }
+
+    return true;
   }
+
+  
 
   const proceed = async () => {
     if (!validate()) return
-    setLoading(true)
+    setLoading(true);
+    showToast("info", "Processing your transaction...");
+
     // Simulate 1.2s payment processing
     setTimeout(async () => {
-      try {
-        if (onPersist) {
-          await onPersist()
-        }
-        setSucceeded(true)
-        // Allow dismiss after success; auto-close after brief delay
+        try {
+        if (onPersist) await onPersist();
+
+        setSucceeded(true);
+        showToast(
+          "success",
+          `Transaction successful! PKR ${amount} ${
+            mode === "deposit" ? "deposited" : "withdrawn"
+          } successfully.`
+        );
+
         setTimeout(() => {
-          onClose()
-          router.refresh() // refresh server data (balance/transactions)
-        }, 900)
+          onClose();
+          router.refresh();
+        }, 900);
+      } catch (error) {
+        showToast("error", "Transaction failed. Please try again later.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }, 1200)
-  }
+    }, 1200);
+  };
 
   if (!isOpen) return null
 
@@ -82,8 +101,10 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/60"
-        onClick={() => {
-          if (canDismiss) onClose()
+       onClick={() => {
+          if (!canDismiss)
+            showToast("info", "Please wait until the transaction is complete.");
+          if (canDismiss) onClose();
         }}
       />
       {/* Panel (approx 50% screen on desktop, full width on mobile) */}
@@ -102,8 +123,10 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
           </h2>
           <button
             aria-label="Close"
-            onClick={() => {
-              if (canDismiss) onClose()
+             onClick={() => {
+              if (!canDismiss)
+                showToast("info", "Please wait until the transaction completes.");
+              if (canDismiss) onClose();
             }}
             className={`rounded px-2 py-1 text-sm ${canDismiss ? "opacity-100" : "opacity-50 cursor-not-allowed"}`}
             style={{

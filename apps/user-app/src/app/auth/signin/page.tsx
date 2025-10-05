@@ -1,24 +1,36 @@
 "use client";
 import type React from "react"
-
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import Link from "next/link"
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { showToast } from "../../lib/toastMessage";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: true,
-      callbackUrl: "/dashboard", // successful login ke baad yahan redirect hoga
-    });
+       try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.ok) {
+        showToast("success", "Welcome back to PakPay! Redirecting to dashboard...");
+        router.push("/dashboard");
+      } else {
+        showToast("error", "Invalid email or password. Please try again.");
+      }
+    } catch (error) {
+      showToast("error", "Something went wrong. Please try again later.");
+    }
   }
 
   return (

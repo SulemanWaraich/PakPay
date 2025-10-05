@@ -8,6 +8,10 @@ services:
       - "3005:3000"
     env_file:
       - ./packages/db/.env
+    depends_on:
+      - bank-webhook
+    networks:
+      - pakpay-network
 
   bank-webhook:
     build:
@@ -17,3 +21,9 @@ services:
       - "4000:3003"
     env_file:
       - ./packages/db/.env
+    networks:
+      - pakpay-network
+
+networks:
+  pakpay-network:
+    driver: bridge

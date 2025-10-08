@@ -56,7 +56,7 @@ export const WithdrawMoney = () => {
           body: JSON.stringify({
             amount,
             token: data.transaction.token,
-            userId: data.transaction.id,
+            userId: data.transaction.userId,
           }),
         });
         console.log("✅ Dummy bank-webhook triggered for Add Money");

@@ -5,14 +5,14 @@ const app = express();
 app.use(express.json())
 
 app.post("/hdfcWebHook", async (req, res) => {
-  console.log( req.body.token,req.body.user_identifier,req.body.amount);
+  console.log( req.body.token,req.body.userId ,req.body.amount);
   
   const paymentinformation = {
     token : req.body.token,
-    userId: req.body.user_identifier,
+    userId: req.body.userId,
     amount: req.body.amount
   };
-  // console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.userId);
+  console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.userId);
   
 try {
   await db.$transaction([

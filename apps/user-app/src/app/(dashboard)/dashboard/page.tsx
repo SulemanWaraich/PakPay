@@ -9,7 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 export default async function DashboardPage() {
   const userSession = await getServerSession(authOptions);
   
-  console.log(userSession)
+  // console.log(userSession)
 
   const onRamps = await prisma.onRampTransaction.findMany({
     where: { userId: Number(userSession.user.id) },
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
   const balance = await prisma.balance.findFirst({ where: { userId: Number(userSession.user.id) } })
   const user = await prisma.user.findFirst({where: {id: Number(userSession.user.id)}})
 
-  console.log(user?.name, balance?.amount)
+  // console.log(user?.name, balance?.amount)
 
 
   return (

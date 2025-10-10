@@ -5,14 +5,14 @@ const app = express();
 app.use(express.json())
 
 app.post("/hdfcWebHook", async (req, res) => {
-  console.log( req.body.token,req.body.userId ,req.body.amount);
+  // console.log( req.body.token,req.body.userId ,req.body.amount);
   
   const paymentinformation = {
     token : req.body.token,
     userId: req.body.userId,
     amount: req.body.amount
   };
-  console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.userId);
+  // console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.userId);
   
 try {
   await db.$transaction([
@@ -91,5 +91,5 @@ app.post("/withdrawWebHook", async (req, res) => {
 });
 
 app.listen(3003, "0.0.0.0", () => {
-  console.log("Bank Webhook running on http://0.0.0.0:3003");
+  // console.log("Bank Webhook running on http://0.0.0.0:3003");
 });

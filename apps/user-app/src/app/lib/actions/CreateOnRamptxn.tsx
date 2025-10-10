@@ -11,7 +11,7 @@ export const CreateOnRampTransaction = async (amount: any, provider: any) => {
       msg: "user not logged in"
     }
   }
-  console.log(session, session.user)
+  // console.log(session, session.user)
   const token = String(Math.random() * 100);
   const txn = await prisma.onRampTransaction.create({data: {
       userId: Number(session?.user?.id),

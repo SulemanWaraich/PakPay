@@ -42,7 +42,7 @@ export const AddMoney = () => {
       `Transaction initialized successfully for PKR ${amount}.`
     );
 
-    console.log(res, data);
+    // console.log(res, data);
 
     // Trigger dummy-bank webhook asynchronously after a short delay
     (async () => {

@@ -38,7 +38,7 @@ export const WithdrawMoney = () => {
       `Transaction initialized successfully for PKR ${amount}.`
     );
 
-    console.log(res, data);
+    // console.log(res, data);
 
 
       

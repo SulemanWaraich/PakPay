@@ -1,4 +1,5 @@
 import { Card } from "@repo/ui"
+import { useEffect } from "react";
 
 export const OnRampTransactions = ({
     transactions
@@ -18,6 +19,7 @@ export const OnRampTransactions = ({
             </div>
         </Card>
     }
+
     return  <Card title="Recent Deposits">
     <div className="pt-2 ">
             {transactions.map((t, i) => 

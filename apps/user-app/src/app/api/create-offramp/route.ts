@@ -3,8 +3,27 @@ import { NextResponse } from "next/server";
 import prisma from "@repo/db"; // your prisma client
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
+import {LRUCache} from "lru-cache";
+
+const rateLimit = new LRUCache({
+  max: 100, // store up to 100 IPs
+  ttl: 60 * 1000, // 1 minute window
+});
+
 
 export async function POST(req: Request) {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const current: any = rateLimit.get(ip) || 0;
+
+    if (current >= 20) {
+      return NextResponse.json(
+         { success: false, error: "Too many requests. Try again later." },
+            { status: 429 }
+            );
+        }
+    rateLimit.set(ip, current + 1);
+
+
     try {
         const { amount, bank } = await req.json();
         const session = await getServerSession(authOptions);

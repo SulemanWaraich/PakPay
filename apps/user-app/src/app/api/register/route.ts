@@ -1,8 +1,28 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import db from "@repo/db";
+import { LRUCache } from "lru-cache";
+
+const rateLimit = new LRUCache({
+  max: 100,              // Track up to 100 IPs
+  ttl: 10 * 60 * 1000,   // 10-minute window
+});
+
+
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const current: any = rateLimit.get(ip) || 0;
+
+  if (current >= 5) {
+    return NextResponse.json(
+      { message: "Too many registration attempts. Try again later." },
+      { status: 429 }
+    );
+  }
+
+  rateLimit.set(ip, current + 1);
+
   try {
     const { email, number, password, name } = await req.json();
 

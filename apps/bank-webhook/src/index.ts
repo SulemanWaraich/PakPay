@@ -1,8 +1,16 @@
 import express, { json } from "express";
 import db from "@repo/db";
+import rateLimit from "express-rate-limit"
 
 const app = express();
 app.use(express.json())
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  message: { msg: "Too many requests, please try again later." },
+});
+app.use(limiter);
 
 app.post("/hdfcWebHook", async (req, res) => {
   // console.log( req.body.token,req.body.userId ,req.body.amount);

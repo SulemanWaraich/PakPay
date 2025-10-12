@@ -34,7 +34,10 @@ export const AddMoney = () => {
       body: JSON.stringify({ amount, bank: bankThemes[bankKey].displayName }),
     });
 
-    if (!res.ok) throw new Error("Failed to record transaction");
+    if (!res.ok){
+      throw new Error("Failed to record transaction");
+      return;
+    } 
 
     const data = await res.json();
     showToast(
@@ -42,7 +45,7 @@ export const AddMoney = () => {
       `Transaction initialized successfully for PKR ${amount}.`
     );
 
-    // console.log(res, data);
+    // console.log(data);
 
     // Trigger dummy-bank webhook asynchronously after a short delay
     (async () => {
@@ -61,7 +64,10 @@ export const AddMoney = () => {
             userId: data.transaction.userId,
           }),
         });
-        console.log("✅ Dummy bank-webhook triggered for Add Money");
+        showToast(
+          "success",
+          "Transaction confirmed successfully via Bank Webhook!"
+        );
       } catch (webhookError) {
         console.error("❌ Failed to trigger dummy bank-webhook:", webhookError);
       }

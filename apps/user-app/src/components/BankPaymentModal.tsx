@@ -206,6 +206,14 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
                 </button>
                 <Button onClick={proceed}>{loading ? "Processing..." : "Proceed"}</Button>
               </div>
+
+                 {/* 🧾 Informational Note */}
+              <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                <strong>Note:</strong> This is not how payments work in real-time. 
+  In a live production system, users would be redirected to their bank’s secure 
+  payment gateway to complete the transaction. Since this project isn't production-ready yet and doesn't use real banking APIs, 
+                this modal flow has been added to simulate a real user experience.
+              </p>
             </form>
           ) : (
             <div className="text-center py-10">

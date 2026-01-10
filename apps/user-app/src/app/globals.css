@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
+/* @layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
@@ -56,8 +57,8 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%
   }
-}
-
+} 
+ 
 @layer base {
   * {
     @apply border-border;
@@ -65,6 +66,128 @@
   body {
     @apply bg-background text-foreground;
   }
+} */
+
+
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 11% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 15%;
+
+    --primary: 145 100% 39%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 145 60% 95%;
+
+    --secondary: 145 60% 97%;
+    --secondary-foreground: 210 11% 15%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 11% 45%;
+
+    --accent: 145 60% 95%;
+    --accent-foreground: 145 100% 39%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 145 100% 39%;
+
+    --radius: 0.75rem;
+
+    /* Custom PakPay tokens */
+    --pakpay-green: 145 100% 39%;
+    --pakpay-green-light: 145 60% 95%;
+    --pakpay-green-mint: 145 50% 97%;
+    --pakpay-dark: 210 11% 15%;
+    --pakpay-gray: 210 11% 45%;
+    --pakpay-light-gray: 210 20% 96%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 210 11% 15%;
+    --foreground: 0 0% 98%;
+
+    --card: 210 11% 18%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 210 11% 18%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 145 100% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 11% 22%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 210 11% 22%;
+    --muted-foreground: 210 11% 65%;
+
+    --accent: 210 11% 22%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 210 11% 25%;
+    --input: 210 11% 25%;
+    --ring: 145 100% 45%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 }
 
+@layer base {
+  * {
+    @apply border-border;
+  }
 
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .section-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-max {
+    @apply max-w-7xl mx-auto;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

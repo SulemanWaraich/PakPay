@@ -67,24 +67,33 @@ export default function SignInPage() {
               />
             </div>
 
+          <Link href={'/auth/forgotPass'}>
+            <p className="float-right mt-2">
+              <span className="text-sm text-green-600 hover:underline">Forgot password?</span>
+            </p>
+          </Link>
+
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full text-base font-semibold mt-6"
             >
-              Next
+              Log in
             </Button>
           </form>
 
           {/* Sign up link */}
           <div className="text-center">
+            <div className="flex justify-center items-center space-x-2">
+              <p>Don't have an account?</p>
             <Link href="/auth/signup">
               <Button
                 variant="outline"
-                className="w-full border-green-600 text-green-600 hover:bg-green-50 py-3 rounded-full text-base font-semibold bg-transparent"
+                className=" border-green-600 text-green-600 hover:bg-green-50 py-1 rounded-full text-base font-semibold bg-transparent"
               >
                 Sign up
               </Button>
             </Link>
+            </div>
           </div>
         </div>
       </div>

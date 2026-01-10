@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react";
 import { SidebarItem } from "../../components/SidebarItem";
+import { AppbarClient } from "../../components/AppbarClient";
 
 export default function Layout({
   children,
@@ -10,9 +11,9 @@ export default function Layout({
   const [isOpen, setIsOpen] = useState(false);
   
   return (
-    <div className="flex">
+    <div className="flex ">
        <button
-        className="sm:hidden px-3 py-1 absolute top-14 left-1 z-50 bg-green-600 text-white rounded-md"
+        className="sm:hidden px-3 py-1 absolute top-16 left-0 z-50 bg-green-600 text-white rounded-sm"
         onClick={() => setIsOpen(!isOpen)}
       >
         ☰
@@ -25,10 +26,11 @@ export default function Layout({
         />
       )}
 
+
       <div
-        className={`absolute sm:static top-16 left-0 h-full sm:h-auto transition-transform duration-300 z-40 bg-white border-slate-300
-        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28`}>
-            <div className="sm:w-52 w-28">
+        className={`absolute sm:static top-16 left-0 h-full sm:h-auto transition-transform duration-300 z-40  border-slate-300 bg-white
+        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28 `}>
+            <div className="sm:w-52 w-28 ">
                 <SidebarItem href={"/dashboard"} icon={<HomeIcon />} title="Home" />
                 <SidebarItem href={"/transfer"} icon={<TransferIcon />} title="Transfer" />
                 <SidebarItem href={"/transactions"} icon={<TransactionsIcon />} title="Transactions" />
@@ -36,7 +38,9 @@ export default function Layout({
             </div>
         </div>
             {children}
-    </div>
+
+</div>
+    
   );
 }
 

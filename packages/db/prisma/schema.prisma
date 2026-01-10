@@ -19,6 +19,8 @@ model User {
   OnRampTransaction  OnRampTransaction[]
   sentTransfers      p2pTransfer[]        @relation("FromUserRelation")
   receivedTransfers  p2pTransfer[]        @relation("ToUserRelation")
+  resetTokenHash     String?
+  resetTokenExpiry   DateTime?
 }
 
 model Merchant {

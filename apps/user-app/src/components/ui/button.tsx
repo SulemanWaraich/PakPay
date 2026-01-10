@@ -19,6 +19,9 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+         pakpay: "bg-pakpay-green text-primary-foreground hover:bg-pakpay-green/90 shadow-md hover:shadow-lg",
+        "pakpay-outline": "border-2 border-pakpay-green text-pakpay-green bg-transparent hover:bg-pakpay-green hover:text-primary-foreground",
+        "pakpay-ghost": "text-foreground hover:text-pakpay-green",
       },
       size: {
         default: "h-9 px-4 py-2",

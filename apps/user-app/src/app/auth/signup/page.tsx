@@ -118,20 +118,24 @@ export default function SignupPage() {
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full text-base font-semibold mt-6"
             >
-              Next
+              Create Account
             </Button>
           </form>
 
           {/* Sign in link */}
           <div className="text-center">
-            <Link href="/auth/signin">
+            <div className="flex justify-center items-center space-x-2">
+              <p>Already have an account?</p>
+                <Link href="/auth/signin">
               <Button
                 variant="outline"
-                className="w-full border-green-600 text-green-600 hover:bg-green-50 py-3 rounded-full text-base font-semibold bg-transparent"
+                className=" border-green-600 text-green-600 hover:bg-green-50 py-1 rounded-full text-base font-semibold bg-transparent"
               >
                 Log in
               </Button>
             </Link>
+            </div>
+          
           </div>
         </div>
       </div>

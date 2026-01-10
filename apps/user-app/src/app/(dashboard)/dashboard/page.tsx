@@ -5,6 +5,7 @@ import ActivityChart from "../../../components/ChartClient"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
 import { formatDistanceToNow } from "date-fns";
+import { AppbarClient } from "../../../components/AppbarClient"
 
 export default async function DashboardPage() {
   const userSession = await getServerSession(authOptions);
@@ -73,7 +74,8 @@ export default async function DashboardPage() {
 
 
   return (
-    <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
+    
+        <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
       <main className="flex-1 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Greeting */}
@@ -193,5 +195,7 @@ export default async function DashboardPage() {
         </div>
       </main>
     </div>
+    
+  
   )
 }

@@ -26,5 +26,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "mailer": "^0.6.7"
+  }
 }

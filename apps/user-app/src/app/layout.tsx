@@ -9,6 +9,8 @@ import AnalyticsProvider from "../components/AnalyticsProvider"; // we'll create
 import { Suspense } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Navbar from "../components/Navbar";
+import { Footer2 } from "../components/Footer2";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -48,12 +50,14 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <AppbarClient />
+          {/* <AppbarClient /> */}
           {/* Track route changes */}
             <Suspense fallback={null}> 
                <AnalyticsProvider />   
             </Suspense>
+            <Navbar />
           {children}
+          <Footer2 />
         </Providers>
 
            {/* ✅ Toast Container (globally accessible) */}

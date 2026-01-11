@@ -27,10 +27,8 @@ const Navbar = () => {
       <div className="container-max section-padding">
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-2">
-            {/* <div className="w-8 h-8 bg-pakpay-green rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
-            </div> */}
+          <a href="/" className="flex items-center justify-center text-center gap-2">
+           
             <span className="sm:text-3xl text-2xl  font-bold text-green-600 mt-2">PakPay</span>
           </a>
 

@@ -21,7 +21,7 @@ export function Footer() {
             <h4 className="font-bold text-brand-dark mb-6">Company</h4>
             <ul className="flex flex-col gap-4">
               <li>
-                <Link href="#" className="text-gray-600 hover:text-green-600 transition-colors">
+                <Link href="/about" className="text-gray-600 hover:text-green-600 transition-colors">
                   About Us
                 </Link>
               </li>
@@ -62,12 +62,12 @@ export function Footer() {
             <h4 className="font-bold text-brand-dark mb-6">Legal</h4>
             <ul className="flex flex-col gap-4">
               <li>
-                <Link href="#" className="text-gray-600 hover:text-green-600 transition-colors">
+                <Link href="/terms" className="text-gray-600 hover:text-green-600 transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-600 hover:text-green-600 transition-colors ">
+                <Link href="/privacy" className="text-gray-600 hover:text-green-600 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
@@ -100,9 +100,9 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <div className="text-center pt-10 border-t border-gray-200">
+        {/* <div className="text-center pt-10 border-t border-gray-200">
           <p className="text-gray-800 text-sm ">© 2026 PakPay. All rights reserved.</p>
-        </div>
+        </div> */}
       </div>
     </footer>
   )

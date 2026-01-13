@@ -57,7 +57,7 @@ const Navbar = () => {
                     Log In
                   </p>
                 </Link>
-                <Link href="/auth/selector">
+                <Link href="/api/selector">
                   <Button variant="outline" size="sm">
                     Get Started
                   </Button>

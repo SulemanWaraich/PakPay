@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { showToast } from "../../lib/toastMessage";
+import { useSearchParams } from "next/navigation";
+import { useEffect} from "react";
+
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -13,10 +16,18 @@ export default function SignupPage() {
   const [number, setNumber] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-
+  const searchParams = useSearchParams();
+  const role = searchParams.get("role") as "USER" | "MERCHANT";
+  
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
+
+    if (!role) {
+      router.push("/auth/role-select");
+    }
+
+
     // ⚠️ Check for empty fields
     if (!name || !email || !number || !password) {
       showToast("warn", "Please fill in all fields.");
@@ -27,7 +38,7 @@ export default function SignupPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, number, password, name }),
+        body: JSON.stringify({ email, number, password, name, role }),
       });
 
       const data = await res.json();
@@ -48,7 +59,7 @@ export default function SignupPage() {
 
       if (loginRes?.ok) {
         showToast("success", "Welcome to PakPay! Redirecting to dashboard...");
-        router.push("/dashboard");
+        router.push("/api/post-login");
       } else {
         showToast("info", "Account created. Please log in to continue.");
         router.push("/auth/signin");
@@ -65,7 +76,7 @@ export default function SignupPage() {
           {/* Logo */}
           <div className="text-center">
             <h1 className="text-3xl font-bold text-green-600 mb-6">PakPay</h1>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-8">Sign up</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-8">Sign up as {role === "MERCHANT" ? "Merchant" : "User"}</h2>
           </div>
 
           {/* Form */}

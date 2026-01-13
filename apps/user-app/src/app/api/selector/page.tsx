@@ -35,7 +35,7 @@ export default function AccountSelector() {
               Pay bills, transfer money, and shop online securely with ease. Manage your personal finances in one place.
             </p>
 
-        <Link href={"/auth/signup"}>
+        <Link href={"/auth/signup?role=USER"}>
 
             <button
               className={`w-full py-3 px-6 bg-green-400 hover:bg-green-500 text-gray-900 font-semibold rounded-full transition-all duration-300 ${
@@ -66,7 +66,7 @@ export default function AccountSelector() {
               Accept payments, manage transactions, and grow your business with our robust tools and analytics.
             </p>
 
-<Link href={"http://localhost:3001/"}>
+<Link href={"/auth/signup?role=MERCHANT"}>
  <button
               className={`w-full py-3 px-6 bg-green-400 hover:bg-green-500 text-gray-900 font-semibold rounded-full transition-all duration-300 ${
                 hoveredCard === "merchant" ? "shadow-lg scale-105" : "shadow-md"

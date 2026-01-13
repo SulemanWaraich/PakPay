@@ -24,7 +24,7 @@ const Hero = () => {
               className="animate-fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              <Link href="/auth/signup">
+              <Link href="/api/selector">
               <Button variant="outline" size="lg">
                 Get Started
               </Button>

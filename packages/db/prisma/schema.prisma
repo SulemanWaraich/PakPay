@@ -14,6 +14,7 @@ model User {
   name               String?
   number             String               @unique
   password           String
+  role               UserRole             @default(USER)
   Balance            Balance?
   OffRampTransaction OffRampTransaction[]
   OnRampTransaction  OnRampTransaction[]
@@ -21,14 +22,20 @@ model User {
   receivedTransfers  p2pTransfer[]        @relation("ToUserRelation")
   resetTokenHash     String?
   resetTokenExpiry   DateTime?
+  merchantProfile    MerchantProfile?
 }
 
-model Merchant {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  auth_type AuthType
+
+model MerchantProfile {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @unique
+  businessName String?
+  kycStatus    KycStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id])
 }
+
 
 model p2pTransfer {
   id         Int      @id @default(autoincrement())
@@ -75,6 +82,11 @@ enum AuthType {
   Github
 }
 
+enum UserRole {
+  USER
+  MERCHANT
+}
+
 enum OnRampStatus {
   Success
   Failure
@@ -85,4 +97,11 @@ enum OffRampStatus {
   Success
   Failure
   Processing
+}
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  REJECTED
 }

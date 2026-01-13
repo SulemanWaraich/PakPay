@@ -24,11 +24,18 @@ export async function POST(req: Request) {
   rateLimit.set(ip, current + 1);
 
   try {
-    const { email, number, password, name } = await req.json();
+    const { email, number, password, name, role } = await req.json();
 
-    if (!email || !number || !password || !name){
+    if (!email || !number || !password || !name || !role){
       return NextResponse.json(
         { message: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!["USER", "MERCHANT"].includes(role)) {
+      return NextResponse.json(
+        { message: "Invalid role" },
         { status: 400 }
       );
     }
@@ -52,6 +59,7 @@ export async function POST(req: Request) {
         email,
         number,
         password: hashedPassword,
+        role,
       },
     });
 
@@ -62,6 +70,15 @@ export async function POST(req: Request) {
       locked: 0,
     },
   });
+
+   if (role === "MERCHANT") {
+      await db.merchantProfile.create({
+        data: {
+          userId: user.id,
+        },
+      });
+    }
+
 
     return NextResponse.json(
       { message: "User registered successfully" },

@@ -33,7 +33,8 @@ export const authOptions = {
             return {
                         id: existingUser.id.toString(),
                         name: existingUser.name,
-                        email: existingUser.email
+                        email: existingUser.email,
+                        role: existingUser.role,
                     };
       }
     })
@@ -41,14 +42,23 @@ export const authOptions = {
   
    secret: process.env.JWT_SECRET || "secret",
     callbacks: {
+        async jwt({ token, user }: any) {
+            if (user) {
+            token.role = user.role; // store role in JWT
+            }
+            return token;
+        },
+
         // TODO: can u fix the type here? Using any is bad
         async session({ token, session }: any) {
-            session.user.id = token.sub
-
-            return session
-        }
+         if (session.user) {
+      session.user.id = token.sub!;
+      session.user.role = token.role as "USER" | "MERCHANT";
+    }
+    return session;
+    }
     },
-
+    
     pages: {
         signIn: "/auth/signin",
     },

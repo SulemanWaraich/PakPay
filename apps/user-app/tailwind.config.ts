@@ -56,6 +56,16 @@ const config: Config = {
           gray: "hsl(var(--pakpay-gray))",
           "light-gray": "hsl(var(--pakpay-light-gray))",
         },
+         sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -66,6 +76,14 @@ const config: Config = {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+      },
+       backgroundImage: {
+        'pakpay-gradient': 'var(--gradient-primary)',
+        'pakpay-button': 'var(--gradient-button)',
+      },
+      boxShadow: {
+        'pakpay-card': '0 4px 24px -4px hsl(var(--pakpay-medium) / 0.15)',
+        'pakpay-button': '0 4px 12px -2px hsl(var(--pakpay-medium) / 0.3)',
       },
         keyframes: {
         "accordion-down": {

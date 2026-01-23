@@ -1,9 +1,30 @@
+"use client";
 import { Button } from "../components/ui/button";
 import heroIllustration from "../../public/hero-illustration.png";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const Hero = () => {
+   const { data: session } = useSession();
+  const router = useRouter();
+
+const handleGetStarted = () => {
+    // Not logged in
+    if (!session) {
+      router.push("/api/selector"); // or /signup
+      return;
+    }
+
+    // Logged in → role-based dashboard
+    if (session.user.role === "USER") {
+      router.push("/user/dashboard");
+    } else if (session.user.role === "MERCHANT") {
+      router.push("/merchant/dashboard");
+    }
+  };
+
   return (
     <section className="relative overflow-hidden  bg-pakpay-green-mint">
       <div className="container-max section-padding py-12 lg:py-20 px-10">
@@ -24,11 +45,11 @@ const Hero = () => {
               className="animate-fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              <Link href="/api/selector">
-              <Button variant="outline" size="lg">
+             
+              <Button variant="outline" size="lg" onClick={handleGetStarted}>
                 Get Started
               </Button>
-              </Link>
+        
             </div>
           </div>
 

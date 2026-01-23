@@ -20,7 +20,10 @@ const Navbar = () => {
   ];
 
   const isLandingPage = pathname === "/" || pathname.startsWith("/landing");
-
+const dashboardHref =
+  session?.user?.role === "MERCHANT"
+    ? "/merchant/dashboard"
+    : "/user/dashboard";
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border ">
@@ -65,7 +68,7 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link href="/dashboard">
+                <Link href={dashboardHref}>
                   <Button variant="outline" size="sm">
                     Dashboard
                   </Button>

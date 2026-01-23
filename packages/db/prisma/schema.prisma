@@ -28,11 +28,16 @@ model User {
 
 model MerchantProfile {
   id           Int       @id @default(autoincrement())
+  ownerName              String?
   userId       Int       @unique
   businessName String?
+  category     MerchantCategory?
+  address      String?
+  logoUrl      String?   // CDN / Cloudinary / S3 URL
+  logoPublicId String?   // Cloudinary public_id (optional but recommended)
   kycStatus    KycStatus @default(PENDING)
   createdAt    DateTime  @default(now())
-
+  qrPayload    String?   @unique
   user         User      @relation(fields: [userId], references: [id])
 }
 
@@ -104,4 +109,13 @@ enum KycStatus {
   SUBMITTED
   VERIFIED
   REJECTED
+}
+
+enum MerchantCategory {
+  RETAIL
+  FOOD
+  SERVICES
+  TECH
+  HEALTHCARE
+  EDUCATION
 }

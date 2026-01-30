@@ -1,0 +1,79 @@
+"use client"
+import { useState } from "react";
+import { SidebarItem } from "../../components/SidebarItem";
+import { AppbarClient } from "../../components/AppbarClient";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}): Promise<JSX.Element> {
+  const [isOpen, setIsOpen] = useState(false);
+  // const session = await getServerSession(authOptions);
+
+  // if (!session || session.user.role !== "ADMIN") {
+  //   return redirect("/"); // block non-admins
+  // }
+
+  
+  return (
+    <div className="flex ">
+       <button
+        className="sm:hidden px-3 py-1 absolute top-16 left-0 z-50 bg-green-600 text-white rounded-sm"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        ☰
+      </button>
+     {/* Overlay for mobile (click to close) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0  z-30 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+
+      <div
+        className={`absolute sm:static top-16 left-0 h-full sm:h-auto transition-transform duration-300 z-40  border-slate-300 bg-white
+        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28 `}>
+            <div className="sm:w-52 w-28 ">
+                <SidebarItem href={"/admin/dashboard"} icon={<HomeIcon />} title="Dashboard" />
+                <SidebarItem href={"/admin/transactions"} icon={<TransactionsIcon />} title="KYC" />
+            </div>
+        </div>
+           
+  {children}
+
+</div>
+    
+  );
+}
+
+// Icons Fetched from https://heroicons.com/
+function HomeIcon() {
+    return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="sm:size-6 size-5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+  </svg>
+}
+function TransferIcon() {
+    return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="sm:size-6 size-5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+  </svg>
+}
+
+function TransactionsIcon() {
+    return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="sm:size-6 size-5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+  
+}
+
+function P2PTransferIcon() {
+    return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="sm:size-6 size-5">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
+</svg>
+}
+

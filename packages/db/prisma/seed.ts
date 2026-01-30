@@ -3,10 +3,26 @@ import {
   OnRampStatus,
   OffRampStatus,
 } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminEmail = "admin@pakpay.com";
+  const adminPassword = "admin123"; // change later
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  
+   await prisma.user.create({
+    data: {
+      email: adminEmail,
+      password: hashedPassword,
+      role: "ADMIN",
+      number: "03272339357",
+    },
+  });
+
   // --- Suleman ---
   const suleman = await prisma.user.upsert({
     where: { number: "9999999999" },
@@ -129,6 +145,8 @@ async function main() {
       },
     ],
   });
+
+
 
   console.log({
     message: "✅ Database seeded successfully!",

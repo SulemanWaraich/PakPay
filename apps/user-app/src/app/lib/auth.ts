@@ -4,6 +4,7 @@ import db from "@repo/db"
 import { pages } from "next/dist/build/templates/app-page";
 import { signIn } from "next-auth/react";
 
+
 export const authOptions = {
   providers: [
     Credentials({
@@ -53,7 +54,7 @@ export const authOptions = {
         async session({ token, session }: any) {
          if (session.user) {
       session.user.id = token.sub!;
-      session.user.role = token.role as "USER" | "MERCHANT";
+      session.user.role = token.role as "USER" | "MERCHANT" | "ADMIN";
     }
     return session;
     }

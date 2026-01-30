@@ -1,41 +1,68 @@
+export const runtime = "nodejs"
 import  prisma  from "@repo/db";
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
 import { NextResponse } from "next/server";
 import cloudinary from "../../lib/cloudinary";
 import { MerchantCategory } from "@prisma/client";
+import  QRCode  from "qrcode";
+
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+ try {
+   const session = await getServerSession(authOptions)
+ 
+ 
+   if (!session?.user?.id ) {
+     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   }
+ 
+   const merchant = await prisma.merchantProfile.findUnique({
+     where: { userId: Number(session.user.id) },
+     select: {
+       id: true,
+       ownerName: true,
+       qrPayload: true,
+       businessName: true,
+       category: true,
+       address: true,
+       kycStatus: true,
+       logoUrl: true,
+     },
+   });
+ 
+
+    if (!merchant || !merchant.businessName || !merchant.category || !merchant.address) {
+     return NextResponse.json(
+       { error: "QR not available" },
+       { status: 403 }
+     );
+   }
 
 
-  if (!session?.user?.id ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const merchant = await prisma.merchantProfile.findUnique({
-    where: { userId: Number(session.user.id) },
-    select: {
-      id: true,
-      ownerName: true,
-      qrPayload: true,
-      businessName: true,
-      category: true,
-      address: true,
-      kycStatus: true,
-      logoUrl: true,
-    },
-  });
+//    if (!merchant || !merchant.qrPayload) {
+//   return new Response(
+//     JSON.stringify({ error: "QR payload missing" }),
+//     { status: 400 }
+//   )
+// }
 
-  if (!merchant) {
+ 
+const qr =
+  merchant.qrPayload && merchant.qrPayload.trim() !== ""
+    ? await QRCode.toDataURL(merchant.qrPayload)
+    : null
+ 
+   return NextResponse.json({ ...merchant, qr });
+ 
+ } catch (error) {
+    console.error("merchant fetch error:", error);
     return NextResponse.json(
-      { error: "Merchant profile not found" },
-      { status: 404 }
+      { error: "Suleman" },
+      { status: 500 }
     );
-  }
-
-  return NextResponse.json(merchant);
-
+ }
   
 }
 
@@ -47,6 +74,12 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+     // Optional: check if role is 'MERCHANT' (if you have roles)
+    if (session.user.role && session.user.role !== "MERCHANT") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
 
     const userId = Number(session.user.id);
 
@@ -75,6 +108,13 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
+
+    if (merchant.kycStatus === "VERIFIED") {
+  return NextResponse.json(
+    { message: "Profile locked after verification" },
+    { status: 403 }
+  );
+}
 
     let logoUrl = merchant.logoUrl;
     let logoPublicId = merchant.logoPublicId;
@@ -117,7 +157,8 @@ export async function POST(req: Request) {
     address,
     logoUrl,
     logoPublicId,
-    kycStatus: "PENDING",
+   // 🔹 Only set PENDING if current status is not VERIFIED
+    kycStatus: merchant.kycStatus === "PENDING" ? "PENDING" : "VERIFIED",
   },
   create: {
     userId,
@@ -129,6 +170,10 @@ export async function POST(req: Request) {
     qrPayload: `PAKPAY-${userId}-${Date.now()}`,
   },
 });
+
+
+
+
 
     return NextResponse.json({
       message: "Business profile saved. Verification pending.",

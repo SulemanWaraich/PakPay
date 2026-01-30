@@ -22,7 +22,22 @@ export default function SignInPage() {
         redirect: false,
       });
 
+     
       if (res?.ok) {
+         const session = await fetch("/api/auth/session").then((r) => r.json());
+
+        if (session?.user?.role === "ADMIN") {
+          showToast("success", "Welcome Admin! Redirecting...");
+          router.push("/admin/dashboard");
+          return;
+        }
+
+        if (session?.user?.role === "MERCHANT") {
+          showToast("success", "Welcome Merchant! Redirecting...");
+          router.push("/merchant/dashboard");
+          return;
+        }
+
         showToast("success", "Welcome back to PakPay! Redirecting to dashboard...");
         router.push("/dashboard");
       } else {

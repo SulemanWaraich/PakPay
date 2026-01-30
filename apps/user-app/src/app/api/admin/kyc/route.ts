@@ -3,9 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { NextResponse } from "next/server";
 import { generateQr } from "../../../lib/qr";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
+  const BASE_URL  = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const ref = crypto.randomBytes(4).toString("hex");
+
 
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -35,7 +39,7 @@ export async function POST(req: Request) {
   ]);
 
   if (action === "APPROVE") {
-  const payload = `PAKPAY-${merchantId}-${Date.now()}`;
+  const payload = `${BASE_URL}/pay?v=1&type=merchant&mid=${merchantId}&ref=${ref}`;
 
   await prisma.merchantProfile.update({
     where: { id: merchantId },

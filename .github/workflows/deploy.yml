@@ -55,10 +55,10 @@ jobs:
           sudo docker stop web-app || true
           sudo docker rm web-app || true
           sudo docker network create pakpay-network || true
-          sudo docker run -d --name web-app --network pakpay-network --restart always -p 3005:3000 --env-file .env suleman100devx/pakpay:latest
+          sudo docker run -d --name web-app --network pakpay-network --restart always -p 3005:3000 --env-file ~/.env suleman100devx/pakpay:latest
 
           sudo docker pull suleman100devx/pakpay-bank-webhook:latest
           sudo docker stop bank-webhook || true
           sudo docker rm bank-webhook || true
           sudo docker network create pakpay-network || true
-          sudo docker run -d --name bank-webhook --network pakpay-network --restart always -p 4000:3003 --env-file .env suleman100devx/pakpay-bank-webhook:latest
+          sudo docker run -d --name bank-webhook --network pakpay-network --restart always -p 4000:3003 --env-file ~/.env suleman100devx/pakpay-bank-webhook:latest

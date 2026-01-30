@@ -1,4 +1,4 @@
-export const runtime = "nodejs"
+export const dynamic = 'force-dynamic';
 import  prisma  from "@repo/db";
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"

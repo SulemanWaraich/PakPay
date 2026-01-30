@@ -130,6 +130,8 @@ export default async function TransactionsPage({
   // Check for active filters
   const hasActiveFilters = typeFilter || startDate || endDate
 
+  
+
   return (
     <div className="min-h-screen bg-gray-50 w-full">
 

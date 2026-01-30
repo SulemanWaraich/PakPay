@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Image, CheckCircle2 } from "lucide-react";
+import { showToast } from "../../lib/toastMessage";
 
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -28,6 +29,8 @@ const BusinessProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isLocked = kycStatus === "VERIFIED";
+
 
   useEffect(() => {
   return () => {
@@ -39,9 +42,11 @@ const BusinessProfileSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("/api/qr");
-        if (!res.ok) throw new Error("Failed");
-
+        const res = await fetch("/api/merchant");
+       if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data?.error || "Failed");
+        }
         const data = await res.json();
         setBusinessName(data.businessName || "");
         setCategory(data.category || "RETAIL");
@@ -64,6 +69,10 @@ const BusinessProfileSettings = () => {
   };
 
   const handleSave = async () => {
+     if (isLocked) {
+      return showToast("success", "✅ Profile locked after verification. Changes are not allowed.");
+    }
+
     if (!businessName || !address) {
       setError("Business name and address are required");
       return;
@@ -89,7 +98,7 @@ const BusinessProfileSettings = () => {
 
       if (!res.ok) throw new Error();
 
-      alert("Business profile saved. Verification pending.");
+      showToast("success", "Business profile saved. Verification pending.");
       setKycStatus("PENDING");
     } catch {
       setError("Failed to save business profile");
@@ -99,12 +108,21 @@ const BusinessProfileSettings = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading business profile...
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card px-8 py-6 shadow-md">
+
+        {/* Spinner */}
+        <div className="h-10 w-10 rounded-full border-4 border-muted border-t-green-600 animate-spin" />
+
+        {/* Text */}
+        <p className="text-sm font-medium text-muted-foreground">
+          Loading business profile…
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -116,7 +134,7 @@ const BusinessProfileSettings = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-[700px] bg-card rounded-xl shadow-card border-t-4 border-t-primary">
+      <div className="w-full max-w-[800px] bg-card rounded-xl shadow-card border-t-4 border-t-primary">
         <div className="px-8 pt-8 pb-6 border-b border-border">
           <h1 className="text-xl font-medium">Business Profile Settings</h1>
         </div>
@@ -145,12 +163,13 @@ const BusinessProfileSettings = () => {
                 type="file"
                 accept="image/*"
                 hidden
+                disabled={isLocked}
                 onChange={(e) =>
                   e.target.files && handleLogoSelect(e.target.files[0])
                 }
               />
 
-              <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
+              <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()} disabled={isLocked}>
                 Change Logo
               </Button>
             </div>
@@ -171,19 +190,20 @@ const BusinessProfileSettings = () => {
           </div>
 
           {/* Form */}
-          <div className="space-y-5">
+          <div className="space-y-5 mx-8">
             <div>
               <label className="text-sm font-medium">Business Name</label>
               <Input
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="Enter business name"
+                disabled={isLocked}
               />
             </div>
 
             <div>
               <label className="text-sm font-medium">Category</label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={setCategory}  disabled={isLocked}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -202,21 +222,27 @@ const BusinessProfileSettings = () => {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter business address"
+                disabled={isLocked}
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end mt-8">
-            <Button onClick={handleSave} disabled={saving}>
+          <div className="flex justify-end mt-8 mr-4">
+            <Button onClick={handleSave} disabled={saving || isLocked}>
               {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
+            
+           {isLocked && (
+            <p className="text-sm text-green-600 mt-4 mb-2 ml-2">
+              ✅ Profile locked after verification
+            </p>
+          )}
 
-          {kycStatus !== "VERIFIED" && (
-            <p className="text-sm text-muted-foreground mt-4">
-              Your business is under verification. QR code will be available
-              after approval.
+           {!isLocked && (
+            <p className="text-sm text-muted-foreground mt-4 mb-2 ml-2">
+              Your business is under verification. QR code will be available after approval.
             </p>
           )}
         </div>

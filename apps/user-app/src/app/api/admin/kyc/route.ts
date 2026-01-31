@@ -7,6 +7,7 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
+  // i have to add production url in base_url variable
   const BASE_URL  = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const ref = crypto.randomBytes(4).toString("hex");
 

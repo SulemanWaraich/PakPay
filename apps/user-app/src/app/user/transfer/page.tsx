@@ -3,9 +3,16 @@ import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { TransferContent } from "../../../components/TransferContent";
+import { redirect } from "next/navigation";
 
 export default async function TransferPage() {
-  const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
+
+    // ❗ Proper session check
+         if (!session?.user?.id) {
+            redirect("/auth/signin") // 👈 or your login route
+          } 
+     
 
   const balance = await prisma.balance.findFirst({
     where: { userId: Number(session?.user?.id) },

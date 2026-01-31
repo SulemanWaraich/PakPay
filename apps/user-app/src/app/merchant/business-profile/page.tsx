@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+import { redirect } from "next/navigation";
 
 const BusinessProfileSettings = () => {
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -42,11 +43,18 @@ const BusinessProfileSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("/api/merchant");
-       if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data?.error || "Failed");
+        const res = await fetch("/api/merchant", { cache: "no-store" });
+        if (res.status === 401) {
+           redirect("/auth/signin")
         }
+
+ 
+          
+       if (!res.ok) {
+          const data = await res.text();
+          throw new Error(data || "Failed to load business profile");
+        }
+
         const data = await res.json();
         setBusinessName(data.businessName || "");
         setCategory(data.category || "RETAIL");

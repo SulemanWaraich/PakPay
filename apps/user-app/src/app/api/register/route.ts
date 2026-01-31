@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import db from "@repo/db";
 import { LRUCache } from "lru-cache";
+import {handleApiError} from "../../lib/middlewares/errorHandler";
 
 const rateLimit = new LRUCache({
   max: 100,              // Track up to 100 IPs
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
 
   if (current >= 5) {
     return NextResponse.json(
-      { message: "Too many registration attempts. Try again later." },
+      { sucess: false, message: "Too many registration attempts. Try again later." },
       { status: 429 }
     );
   }
@@ -28,28 +29,32 @@ export async function POST(req: Request) {
 
     if (!email || !number || !password || !name || !role){
       return NextResponse.json(
-        { message: "All fields are required" },
+        { sucess: false, message: "All fields are required" },
         { status: 400 }
       );
     }
 
     if (!["USER", "MERCHANT"].includes(role)) {
       return NextResponse.json(
-        { message: "Invalid role" },
+        { sucess: false, message: "Invalid role" },
         { status: 400 }
       );
     }
 
     const existingUser = await db.user.findFirst({
-      where: { email },
+      where: {
+        OR: [{ email }, { number }],
+      },
     });
+
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "User already exists" },
+        { success: false, message: "User with this email or number already exists." },
         { status: 400 }
       );
     }
+    
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -81,14 +86,11 @@ export async function POST(req: Request) {
 
 
     return NextResponse.json(
-      { message: "User registered successfully" },
+      { success: true, message: "User registered successfully" },
       { status: 201 }
     );
   } catch (err: any) {
-    console.error("Register error:", err);
-    return NextResponse.json(
-      { message: "Something went wrong", error: err.message },
-      { status: 500 }
-    );
+    // console.error("Register error:", err);    
+    return handleApiError(err);
   }
 }

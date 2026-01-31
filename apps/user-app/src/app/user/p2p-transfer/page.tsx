@@ -3,9 +3,14 @@ import { SendMoneyCard } from "../../../components/SendMoneyCard"
 import { P2PTransaction } from "../../../components/P2PTransaction";
 import { authOptions } from "../../lib/auth"
 import prisma from "@repo/db";
+import { redirect } from "next/navigation";
 
 async function getp2pTransaction(){
   const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect("/auth/signin") // 👈 or your login route
+  } 
+
   const transactions = await prisma.p2pTransfer.findMany({where: {fromUserId: Number(session?.user?.id)},  cacheStrategy: { ttl: 60 },})
 
   return transactions.map((val: any) => ({

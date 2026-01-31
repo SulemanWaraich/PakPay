@@ -4,6 +4,7 @@ import { Download, Share2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { AlertTriangle, ShieldAlert, FileText } from "lucide-react";
+import { redirect } from "next/navigation";
 
 
 type Merchant = {
@@ -29,8 +30,7 @@ const QRCodePage = () => {
         const res = await fetch("/api/qr");
 
         if (res.status === 401) {
-          setError("Unauthorized. Please login again.");
-          return;
+          redirect("/auth/signin")
         }
 
         const data = await res.json();

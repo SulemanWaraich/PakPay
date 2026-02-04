@@ -23,6 +23,7 @@ model User {
   resetTokenHash     String?
   resetTokenExpiry   DateTime?
   merchantProfile    MerchantProfile?
+  merchantPayments   MerchantTransaction[] @relation("CustomerTransactions")
 }
 
 
@@ -39,8 +40,39 @@ model MerchantProfile {
   createdAt    DateTime  @default(now())
   qrPayload    String?   @unique
   user         User      @relation(fields: [userId], references: [id])
+  transactions MerchantTransaction[]
   auditLogs    AuditLog[]
 }
+
+model MerchantTransaction {
+ id             Int @id @default(autoincrement())
+
+  // 🔗 Relations
+  merchantId    Int
+  merchant      MerchantProfile @relation(fields: [merchantId], references: [id])
+
+  customerId    Int?
+  customer      User? @relation("CustomerTransactions", fields: [customerId], references: [id])
+
+  // 💰 Payment details
+  amount        Int
+  paymentMethod PaymentMethod
+  status        TransactionStatus
+
+  // 🏦 Settlement tracking
+  settled       Boolean   @default(false)
+  settledAt     DateTime?
+
+  // 🔁 Refunds / disputes (future-proof)
+  refunded      Boolean   @default(false)
+  refundedAt    DateTime?
+
+  ref           String? @unique
+
+  // 🕒 Timestamps
+  createdAt     DateTime  @default(now())
+}
+
 
 model AuditLog {
   id          Int      @id @default(autoincrement())
@@ -130,4 +162,17 @@ enum MerchantCategory {
   TECH
   HEALTHCARE
   EDUCATION
+}
+
+enum PaymentMethod {
+  QR
+  CARD
+  WALLET
+  BANK_TRANSFER
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
 }

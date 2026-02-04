@@ -1,216 +1,188 @@
-// app/dashboard/page.tsx
 import { Card, CardContent } from "../../../components/ui/card"
 import prisma from "@repo/db"
-import ActivityChart from "../../../components/ChartClient"
+import ActivityChart from "../../../components/ChartMerchant"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
-import { formatDistanceToNow } from "date-fns";
-import { AppbarClient } from "../../../components/AppbarClient"
+import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 
-export default async function DashboardPage() {
+export default async function MerchantDashboardPage() {
   try {
-     const userSession = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions)
 
-    // ❗ Proper session check
-    if (!userSession?.user?.id) {
-     redirect("/auth/signin")
+    if (!session?.user?.id || session.user.role !== "MERCHANT") {
+      redirect("/auth/signin")
     }
 
-    // const userId = Number(userSession.user.id)
-  
-    const onRamps = await prisma.onRampTransaction.findMany({
-      where: { userId: Number(userSession.user.id) },
-      orderBy: { startTime: "asc" },
+    const merchantUserId = Number(session.user.id)
+
+    const merchant = await prisma.merchantProfile.findUnique({
+      where: { userId: merchantUserId }
     })
-    const offRamps = await prisma.offRampTransaction.findMany({
-      where: { userId: Number(userSession.user.id) },
-      orderBy: { startTime: "asc" },
+
+    if (!merchant) {
+      redirect("/api/selector")
+    }
+
+    const transactions = await prisma.merchantTransaction.findMany({
+      where: {
+        merchantId: merchant.id,
+        status: "SUCCESS"
+      },
+      orderBy: { createdAt: "asc" }
     })
-    const transfers = await prisma.p2pTransfer.findMany({
-      where: {fromUserId: Number(userSession.user.id)},
-      orderBy: { timestamp: "asc" },
-    })
-  
-    const dailyData: Record<string, { onRamp: number; offRamp: number; p2p: number }> = {}
-    onRamps.forEach((txn) => {
-      const date = txn.startTime.toISOString().split("T")[0]
-      if (!dailyData[date]) dailyData[date] = { onRamp: 0, offRamp: 0, p2p: 0 }
-      dailyData[date].onRamp += txn.amount
-    })
-    offRamps.forEach((txn) => {
-      const date = txn.startTime.toISOString().split("T")[0]
-      if (!dailyData[date]) dailyData[date] = { onRamp: 0, offRamp: 0, p2p: 0 }
-      dailyData[date].offRamp += txn.amount
-    })
-    transfers.forEach((txn) => {
-      const date = txn.timestamp.toISOString().split("T")[0]
-      if (!dailyData[date]) dailyData[date] = { onRamp: 0, offRamp: 0, p2p: 0 }
-      dailyData[date].p2p += txn.amount
-    })
-  
-     const allTransactions = [
-      ...onRamps.map((t) => ({ time: t.startTime, amount: t.amount })),
-      ...offRamps.map((t) => ({ time: t.startTime, amount: t.amount })),
-      ...transfers.map((t) => ({ time: t.timestamp, amount: t.amount })),
-    ]
-  
-     // 🗓️ Calculate monthly transactions count
+
     const now = new Date()
-    const monthlyTransactions = allTransactions.filter((t) => {
-      const d = new Date(t.time)
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    }).length
-  
-    // 💸 Calculate weekly spending
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(now.getDate() - 7)
-    const weeklySpending = allTransactions
-      .filter((t) => new Date(t.time) >= oneWeekAgo)
+
+    // 📊 Daily revenue (chart)
+    const dailyRevenue: Record<string, number> = {}
+    transactions.forEach(txn => {
+      const date = txn.createdAt.toISOString().split("T")[0]
+      dailyRevenue[date] = (dailyRevenue[date] || 0) + txn.amount
+    })
+
+    const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({
+      date,
+      revenue
+    }))
+
+    // 📆 Monthly revenue
+    const monthlyRevenue = transactions
+      .filter(t => {
+        const d = new Date(t.createdAt)
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      })
       .reduce((sum, t) => sum + t.amount, 0)
-    
-  
-    const chartData = Object.entries(dailyData)
-      .map(([date, values]) => ({ date, ...values }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  
-    const balance = await prisma.balance.findFirst({ where: { userId: Number(userSession.user.id) } })
-    const user = await prisma.user.findFirst({where: {id: Number(userSession.user.id)}})
-  
-    // console.log(user?.name, balance?.amount)
-  
-  
+
+    // 📆 Weekly revenue
+    const weekAgo = new Date()
+    weekAgo.setDate(now.getDate() - 7)
+
+    const weeklyRevenue = transactions
+      .filter(t => t.createdAt >= weekAgo)
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    // 💰 Settlement balances
+    const availableBalance = transactions
+      .filter(t => t.settled)
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    const pendingSettlement = transactions
+      .filter(t => !t.settled)
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    // 💳 Revenue by payment method
+    const revenueByMethod: Record<string, number> = {}
+    transactions.forEach(txn => {
+      revenueByMethod[txn.paymentMethod] =
+        (revenueByMethod[txn.paymentMethod] || 0) + txn.amount
+    })
+
+    const recentTransactions = [...transactions].reverse().slice(0, 3)
+
     return (
-      
-          <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
+      <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
-            {/* Greeting */}
-            <div className="mb-6 sm:text-left mt-2 text-center">
-              <div className="flex items-center sm:flex-row flex-col gap-2 mb-1">
-                <div className="sm:w-2 sm:h-2 w-2 h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
-                <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent text-center">
-                  Good Afternoon, {user?.name ?? 'NA'}
-                </h1>
-              </div>
-              <p className="text-gray-600 text-sm ml-4">Welcome back to your merchant financial dashboard</p>
+
+            <div className="mb-6 mt-2">
+              <h1 className="text-3xl font-bold text-emerald-700">Merchant Dashboard</h1>
+              <p className="text-sm text-gray-600">
+                Auto-settlement every 2 days (T+2)
+              </p>
             </div>
-  
-            {/* Top Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <Card className="lg:col-span-1 bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-lg text-white">
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
                 <CardContent className="p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-green-100 mb-1">Portfolio Value</p>
-                  <p className="sm:text-3xl text-xl font-bold mb-1">${balance?.amount ?? 0}</p>
-                  <span className="text-xs text-green-100">Total Balance</span>
+                  <p className="text-xs uppercase">Available Balance</p>
+                  <p className="text-3xl font-bold">
+                    ${availableBalance.toLocaleString()}
+                  </p>
+                  <p className="text-xs">Settled to bank</p>
                 </CardContent>
               </Card>
-  
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* 🔹 Dynamic Monthly Transactions */}
-                <Card className="bg-white/80 border border-green-100/50 shadow-md">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
-                        <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-800">{monthlyTransactions}</p>
-                        <p className="text-xs text-gray-600">This Month</p>
-                      </div>
-                    </div>
-                    <h3 className="font-medium text-sm text-gray-800">Total Transactions</h3>
-                    <p className="text-xs text-green-600">Auto-calculated from DB</p>
-                  </CardContent>
-                </Card>
-  
-                {/* 🔹 Dynamic Weekly Spending */}
-                <Card className="bg-white/80 border border-green-100/50 shadow-md">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
-                        <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-800">${weeklySpending.toLocaleString()}</p>
-                        <p className="text-xs text-gray-600">This Week</p>
-                      </div>
-                    </div>
-                    <h3 className="font-medium text-sm text-gray-800">Weekly Spending</h3>
-                    <p className="text-xs text-blue-600">Auto-calculated from DB</p>
-                  </CardContent>
-                </Card>
-              </div>
+
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-gray-500">This Month</p>
+                  <p className="text-2xl font-bold">
+                    ${monthlyRevenue.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-gray-500">This Week</p>
+                  <p className="text-2xl font-bold">
+                    ${weeklyRevenue.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-gray-500">Pending Settlement</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    ${pendingSettlement.toLocaleString()}
+                  </p>
+                  <p className="text-xs">Auto off-ramp in T+2</p>
+                </CardContent>
+              </Card>
+
             </div>
-  
-            {/* Chart */}
-            <Card className="bg-white/90 border border-green-100/50 shadow-md">
+
+            <Card className="mb-6">
               <CardContent className="p-4">
-                <ActivityChart />
+                <ActivityChart data={chartData} />
               </CardContent>
             </Card>
-  
-            {/* Recent Activity */}
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                Recent Activity
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { type: "OnRamp", amount: allTransactions[0]?.amount, time: allTransactions[0]?.time, color: "green" },
-                  { type: "Transfer", amount: allTransactions[1]?.amount, time: allTransactions[1]?.time, color: "blue" },
-                  { type: "P2P", amount: allTransactions[2]?.amount, time: allTransactions[3]?.time, color: "purple" },
-                ].map((activity, i) => (
-                  <Card key={i} className="bg-white/80 border border-gray-100/50 shadow-sm">
+
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <h2 className="font-semibold mb-3">Revenue by Payment Method</h2>
+                <ul className="space-y-2 text-sm">
+                  {Object.entries(revenueByMethod).map(([method, amount]) => (
+                    <li key={method} className="flex justify-between">
+                      <span>{method}</span>
+                      <span>${amount.toLocaleString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <div>
+              <h2 className="font-semibold mb-4">Recent Payments</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentTransactions.map(txn => (
+                  <Card key={txn.id}>
                     <CardContent className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            activity.color === "green"
-                              ? "bg-green-100"
-                              : activity.color === "blue"
-                              ? "bg-blue-100"
-                              : "bg-purple-100"
-                          }`}
-                        >
-                          <div
-                            className={`w-3 h-3 rounded-sm ${
-                              activity.color === "green"
-                                ? "bg-green-500"
-                                : activity.color === "blue"
-                                ? "bg-blue-500"
-                                : "bg-purple-500"
-                            }`}
-                          ></div>
-                        </div>
-                        <span
-                          className={`text-sm font-semibold ${
-                            activity?.amount?.toString() ? "text-green-600" : "text-gray-700"
-                          }`}
-                        >
-                          {activity?.amount || 0}
-                        </span>
-                      </div>
-                      <h3 className="font-medium text-sm text-gray-800">{activity.type}</h3>
-                      <p className="text-xs text-gray-500">{activity?.time ? formatDistanceToNow(activity.time, { addSuffix: true }) : "No activity yet"  }</p>
+                      <p className="font-medium">${txn.amount}</p>
+                      <p className="text-xs text-gray-500">
+                        {txn.paymentMethod}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {formatDistanceToNow(txn.createdAt, { addSuffix: true })}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             </div>
+
           </div>
         </main>
       </div>
-      
-    
     )
-  } catch (error) {
-    console.log("Dashboard Error:", error)
+  } catch (err) {
+    console.error(err)
     return (
       <div className="flex items-center justify-center h-screen">
-        <h1 className="text-red-600 text-xl font-semibold">
-          Something went wrong loading your dashboard.
+        <h1 className="text-red-600 text-xl">
+          Failed to load merchant dashboard
         </h1>
       </div>
     )

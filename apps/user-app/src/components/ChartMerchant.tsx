@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, Legend } from "recharts"
 
-export default function ActivityChart({data}: any) {
+export default function ActivityChart({ data }: any) {
   // const [data, setData] = useState([])
 
   // useEffect(() => {
@@ -22,20 +22,20 @@ export default function ActivityChart({data}: any) {
       </h2>
 
       <ResponsiveContainer width="100%" height="100%" className={"pt-2"}>
-       <LineChart data={data}>
-  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-  <XAxis dataKey="date" />
-  <YAxis />
-  <Tooltip />
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
 
-  <Line
-    type="monotone"
-    dataKey="revenue"
-    name="Revenue"
-    stroke="#22c55e"
-    strokeWidth={3}
-  />
-</LineChart>
+          <Line
+            type="monotone"
+            dataKey="revenue"
+            name="Revenue"
+            stroke="#22c55e"
+            strokeWidth={3}
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   )

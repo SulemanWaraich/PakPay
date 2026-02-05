@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   // i have to add production url in base_url variable
   const BASE_URL  = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const ref = crypto.randomBytes(4).toString("hex");
+  // const ref = crypto.randomBytes(4).toString("hex");
 
 
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   ]);
 
   if (action === "APPROVE") {
-  const payload = `${BASE_URL}/pay?v=1&type=merchant&mid=${merchantId}&ref=${ref}`;
+  const payload = `${BASE_URL}/pay?v=1&type=merchant&mid=${merchantId}`;
 
   await prisma.merchantProfile.update({
     where: { id: merchantId },

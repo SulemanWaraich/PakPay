@@ -9,27 +9,42 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = "admin@pakpay.com";
-  const adminPassword = "admin123"; // change later
+ console.log("🌱 Seeding database...");
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
-  
-   await prisma.user.create({
-    data: {
-      email: adminEmail,
-      password: hashedPassword,
+  // ---------- Admin ----------
+  const adminPassword = await bcrypt.hash("admin123", 10);
+
+  await prisma.user.upsert({
+    where: { email: "admin@pakpay.com" },
+    update: {},
+    create: {
+      email: "admin@pakpay.com",
+      password: adminPassword,
       role: "ADMIN",
       number: "03272339357",
     },
   });
 
-  // --- Suleman ---
+  // const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  
+  //  await prisma.user.create({
+  //   data: {
+  //     email: adminEmail,
+  //     password: hashedPassword,
+  //     role: "ADMIN",
+  //     number: "03272339357",
+  //   },
+  // });
+
+  const sulemanPassword = await bcrypt.hash("suleman123", 10);
+
   const suleman = await prisma.user.upsert({
     where: { number: "9999999999" },
-    update: {},
+    update: {email: "suleman@pakpay.com",  password: sulemanPassword,},
     create: {
+      email: "suleman@pakpay.com",
       number: "9999999999",
-      password: "suleman123",
+      password: sulemanPassword,
       name: "Suleman",
       OnRampTransaction: {
         create: [
@@ -76,13 +91,16 @@ async function main() {
     },
   });
 
-  // --- Usama ---
+  // ---------- Usama ----------
+  const usamaPassword = await bcrypt.hash("usama123", 10);
+
   const usama = await prisma.user.upsert({
     where: { number: "9999999998" },
     update: {},
     create: {
+      email: "usama@pakpay.com",
       number: "9999999998",
-      password: "usama123",
+      password: usamaPassword,
       name: "Usama",
       OnRampTransaction: {
         create: [

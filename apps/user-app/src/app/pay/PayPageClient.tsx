@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { nanoid } from "nanoid";
 
 type Merchant = {
   id: number;
@@ -21,6 +22,8 @@ export default function PayPageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const [txnRef] = useState(() => nanoid(12));
 
   // validation
   if (!type || !merchantId) {
@@ -63,7 +66,7 @@ export default function PayPageClient() {
       body: JSON.stringify({
         merchantId,
         amount: Number(amount),
-        ref,
+        ref: txnRef
       }),
     });
 

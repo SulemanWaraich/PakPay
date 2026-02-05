@@ -9,70 +9,100 @@ datasource db {
 }
 
 model User {
-  id                 Int                  @id @default(autoincrement())
-  email              String?              @unique
-  name               String?
-  number             String               @unique
-  password           String
-  role               UserRole             @default(USER)
+  id       Int      @id @default(autoincrement())
+  email    String?  @unique
+  name     String?
+  number   String   @unique
+  password String
+  role     UserRole @default(USER)
+
   Balance            Balance?
   OffRampTransaction OffRampTransaction[]
   OnRampTransaction  OnRampTransaction[]
-  sentTransfers      p2pTransfer[]        @relation("FromUserRelation")
-  receivedTransfers  p2pTransfer[]        @relation("ToUserRelation")
-  resetTokenHash     String?
-  resetTokenExpiry   DateTime?
-  merchantProfile    MerchantProfile?
-  merchantPayments   MerchantTransaction[] @relation("CustomerTransactions")
+
+  sentTransfers     p2pTransfer[] @relation("FromUserRelation")
+  receivedTransfers p2pTransfer[] @relation("ToUserRelation")
+
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
+
+  merchantProfile  MerchantProfile?
+  merchantPayments MerchantTransaction[] @relation("CustomerTransactions")
 }
 
-
 model MerchantProfile {
-  id           Int       @id @default(autoincrement())
-  ownerName              String?
-  userId       Int       @unique
+  id     Int @id @default(autoincrement())
+  userId Int @unique
+
+  ownerName    String?
   businessName String?
   category     MerchantCategory?
   address      String?
-  logoUrl      String?   // CDN / Cloudinary / S3 URL
-  logoPublicId String?   // Cloudinary public_id (optional but recommended)
-  kycStatus    KycStatus @default(PENDING)
-  createdAt    DateTime  @default(now())
-  qrPayload    String?   @unique
-  user         User      @relation(fields: [userId], references: [id])
+
+  logoUrl      String?
+  logoPublicId String?
+
+  kycStatus KycStatus @default(PENDING)
+  qrPayload String?   @unique
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
   transactions MerchantTransaction[]
+  settlements  Settlement[]
   auditLogs    AuditLog[]
 }
 
 model MerchantTransaction {
- id             Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  // 🔗 Relations
-  merchantId    Int
-  merchant      MerchantProfile @relation(fields: [merchantId], references: [id])
+  merchantId Int
+  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
 
-  customerId    Int?
-  customer      User? @relation("CustomerTransactions", fields: [customerId], references: [id])
+  customerId Int?
+  customer   User? @relation("CustomerTransactions", fields: [customerId], references: [id])
 
-  // 💰 Payment details
   amount        Int
   paymentMethod PaymentMethod
   status        TransactionStatus
 
-  // 🏦 Settlement tracking
-  settled       Boolean   @default(false)
-  settledAt     DateTime?
+  // 🔁 Settlement linkage
+  settled      Boolean     @default(false)
+  settledAt    DateTime?
+  settlementId Int?
+  settlement   Settlement? @relation(fields: [settlementId], references: [id])
 
-  // 🔁 Refunds / disputes (future-proof)
-  refunded      Boolean   @default(false)
-  refundedAt    DateTime?
+  refunded   Boolean   @default(false)
+  refundedAt DateTime?
 
-  ref           String? @unique
+  ref String? @unique
 
-  // 🕒 Timestamps
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 }
 
+model Settlement {
+  id Int @id @default(autoincrement())
+
+  merchantId Int
+  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
+
+  amount Int
+  status SettlementStatus @default(PROCESSING)
+
+  scheduledFor DateTime
+  processedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  transactions MerchantTransaction[]
+}
+
+model SettlementLock {
+  id       Int       @id @default(1)
+  locked   Boolean   @default(false)
+  lockedAt DateTime?
+}
 
 model AuditLog {
   id          Int      @id @default(autoincrement())
@@ -81,9 +111,9 @@ model AuditLog {
   reason      String?
   performedBy Int
   createdAt   DateTime @default(now())
-  merchant    MerchantProfile @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-}
 
+  merchant MerchantProfile @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
 
 model p2pTransfer {
   id         Int      @id @default(autoincrement())
@@ -91,8 +121,9 @@ model p2pTransfer {
   timestamp  DateTime
   fromUserId Int
   toUserId   Int
-  fromUser   User     @relation("FromUserRelation", fields: [fromUserId], references: [id])
-  toUser     User     @relation("ToUserRelation", fields: [toUserId], references: [id])
+
+  fromUser User @relation("FromUserRelation", fields: [fromUserId], references: [id])
+  toUser   User @relation("ToUserRelation", fields: [toUserId], references: [id])
 }
 
 model OnRampTransaction {
@@ -103,7 +134,8 @@ model OnRampTransaction {
   amount    Int
   startTime DateTime
   userId    Int
-  user      User         @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model OffRampTransaction {
@@ -114,20 +146,17 @@ model OffRampTransaction {
   startTime   DateTime      @default(now())
   userId      Int
   bankAccount String
-  user        User          @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Balance {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
+  id     Int @id @default(autoincrement())
+  userId Int @unique
   amount Int
   locked Int
-  user   User @relation(fields: [userId], references: [id])
-}
 
-enum AuthType {
-  Google
-  Github
+  user User @relation(fields: [userId], references: [id])
 }
 
 enum UserRole {
@@ -136,16 +165,23 @@ enum UserRole {
   ADMIN
 }
 
-enum OnRampStatus {
-  Success
-  Failure
-  Processing
+enum SettlementStatus {
+  PROCESSING
+  SUCCESS
+  FAILED
 }
 
-enum OffRampStatus {
-  Success
-  Failure
-  Processing
+enum PaymentMethod {
+  QR
+  CARD
+  WALLET
+  BANK_TRANSFER
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
 }
 
 enum KycStatus {
@@ -164,15 +200,14 @@ enum MerchantCategory {
   EDUCATION
 }
 
-enum PaymentMethod {
-  QR
-  CARD
-  WALLET
-  BANK_TRANSFER
+enum OnRampStatus {
+  Success
+  Failure
+  Processing
 }
 
-enum TransactionStatus {
-  SUCCESS
-  FAILED
-  PENDING
+enum OffRampStatus {
+  Success
+  Failure
+  Processing
 }

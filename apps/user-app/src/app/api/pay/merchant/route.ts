@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   }
 
   const merchant = await prisma.merchantProfile.findUnique({
-    where: { userId: Number(mid) },
+    where: { id: Number(mid) },
     select: {
       id: true,
       businessName: true,

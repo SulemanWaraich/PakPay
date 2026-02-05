@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Card, CardContent } from "../../../components/ui/card"
 import prisma from "@repo/db"
 import ActivityChart from "../../../components/ChartMerchant"

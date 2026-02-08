@@ -21,12 +21,13 @@ export default async function TransactionsPage({
 }: {
   searchParams: SearchParams
 }) {
-  try {
     const session = await getServerSession(authOptions)
   
     if (!session?.user?.id) {
       redirect("/auth/signin")
     }
+  
+  try {
   
     // Parse filter parameters
     const typeFilter = searchParams.type
@@ -297,7 +298,7 @@ export default async function TransactionsPage({
      console.error("Transactions error:", error)
     return (
       <div className="p-8">
-        <h2 className="text-red-500 text-xl">
+        <h2 className="text-red-500 text-xl text-center">
           Something went wrong loading your transactions.
         </h2>
       </div>

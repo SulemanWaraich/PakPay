@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation"
 import { Button } from "@repo/ui"
 import { showToast } from "../app/lib/toastMessage";
 
-type Mode = "deposit" | "withdraw"
+  
+type Mode = "deposit" | "withdraw" | "consumer-payment" | "business-payment" | "merchant-payment";
 
 type Props = {
   isOpen: boolean

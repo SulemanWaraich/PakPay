@@ -15,6 +15,7 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
 
   const reason = searchParams.get("reason");
+  const merchantId = searchParams.get("merchantId");
 
   const messages: Record<string, string> = {
     payment_auth: "Please log in to proceed with your payment",
@@ -29,15 +30,15 @@ export default function SignInPage() {
         redirect: false,
       });
 
-     
       if (res?.ok) {
          const session = await fetch("/api/auth/session").then((r) => r.json());
 
         if (reason === "payment_auth") {
         showToast("success", "Login successful! Redirecting to payment...");
-        router.push("/api/pay");
+        router.push(`/pay?v=1&type=merchant&mid=${encodeURIComponent(merchantId || "")}`);
         return;
       }
+
 
         if (session?.user?.role === "ADMIN") {
           showToast("success", "Welcome Admin! Redirecting...");

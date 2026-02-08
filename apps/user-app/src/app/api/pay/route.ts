@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     // 2. Receive payment payload
     // ------------------------------
 
-    const { merchantId, amount, ref } = await req.json();
+    const { merchantId, amount, ref, paymentMethod } = await req.json();
 
     // -------------------------------
     // 1. Basic validation
@@ -95,33 +95,23 @@ export async function POST(req: Request) {
         merchantId: id,
         amount,
         // customerId: Number(customerId),
-        paymentMethod: "WALLET",
+        paymentMethod,
         ref: ref,
-        status: "SUCCESS",
+        status: "PENDING",
               },
     });
 
     // -------------------------------
     // 5. Update merchant balance
     // -------------------------------
-    await prisma.$transaction([
-      prisma.balance.update({
-      where: { userId: Number(merchant.userId) },
-      data: {
-        amount: {
-          increment: amount
-        },
-      },
-    }),
-    prisma.balance.update({
-      where: { userId: Number(customerId) },
-      data: {
-        amount: {
-          decrement: amount
-        },
-      },
-    }),
-  ]);
+    await fetch("/api/onramp-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({amount,
+             token: ref,
+             merchantId: merchant.userId,
+            customerId: customerId }),
+            });
 
     // -------------------------------
     // 6. Return success

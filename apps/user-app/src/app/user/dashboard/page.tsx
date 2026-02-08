@@ -9,14 +9,14 @@ import { AppbarClient } from "../../../components/AppbarClient"
 import { redirect } from "next/navigation"
 
 export default async function DashboardPage() {
-  try {
-     const userSession = await getServerSession(authOptions)
+    const userSession = await getServerSession(authOptions)
 
       // ❗ Proper session check
       if (!userSession?.user?.id) {
          redirect("/auth/signin") // 👈 or your login route
        } 
-  
+  try {
+   
     const onRamps = await prisma.onRampTransaction.findMany({
       where: { userId: Number(userSession.user.id) },
       orderBy: { startTime: "asc" },
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
   } catch (error) {
     console.error("Dashboard error:", error)
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen w-full">
         <h1 className="text-red-600 text-xl font-semibold">
           Something went wrong loading your dashboard.
         </h1>

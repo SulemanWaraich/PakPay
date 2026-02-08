@@ -9,12 +9,13 @@ import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 
 export default async function MerchantDashboardPage() {
-  try {
-    const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions)
 
     if (!session?.user?.id || session.user.role !== "MERCHANT") {
       redirect("/auth/signin")
     }
+  try {
+    
 
     const merchantUserId = Number(session.user.id)
 
@@ -182,7 +183,7 @@ export default async function MerchantDashboardPage() {
   } catch (err) {
     console.error(err)
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen w-full">
         <h1 className="text-red-600 text-xl">
           Failed to load merchant dashboard
         </h1>

@@ -47,6 +47,14 @@ export async function POST(req: Request) {
             },
         });
 
+        await fetch("/api/onramp-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({amount,
+             token: transaction.token,
+             userId: transaction.userId, }),
+            });
+
         return NextResponse.json({ success: true, transaction });
 
 

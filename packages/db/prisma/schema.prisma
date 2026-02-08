@@ -169,6 +169,7 @@ enum SettlementStatus {
   PROCESSING
   SUCCESS
   FAILED
+  PENDING
 }
 
 enum PaymentMethod {

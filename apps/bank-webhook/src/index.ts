@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit"
 
 const app = express();
 app.use(express.json())
+ 
 
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -95,6 +96,99 @@ app.post("/withdrawWebHook", async (req, res) => {
     }
 
     return res.status(500).json({ msg: "transaction failed" });
+  }
+});
+
+app.post("/merchantWebHook", async (req, res) => {
+  // console.log( req.body.token,req.body.userId ,req.body.amount);
+  
+  const paymentinformation = {
+    token: req.body.token,
+    merchantId: req.body.merchantId,
+    amount: req.body.amount,
+    customerId: req.body.customerId
+  };
+  // console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.merchantId);
+  
+try {
+   await db.$transaction([
+      db.balance.update({
+      where: { userId: Number(paymentinformation.merchantId) },
+      data: {
+        amount: {
+          increment: paymentinformation.amount
+        },
+      },
+    }),
+    db.balance.update({
+      where: { userId: Number(paymentinformation.customerId) },
+      data: {
+        amount: {
+          decrement: paymentinformation.amount
+        },
+      },
+    }),
+  ]);
+
+    await db.merchantTransaction.update({
+    where: {
+      ref: paymentinformation.token
+    },
+    data: {
+      status: "SUCCESS",
+    },
+  });
+
+
+  return res.status(200).json({msg: "captured"});
+} catch (error) {
+  console.log(error);
+  res.status(411).json({msg: "transaction failed"})
+}
+})
+
+app.post("/merchantSettlementWebHook", async (req, res) => {
+  const settlementId = Number(req.body.settlementId);
+  const merchantId = Number(req.body.merchantId);
+  const amount = Number(req.body.amount);
+
+  if (!settlementId || !merchantId || !amount) {
+    return res.status(400).json({ msg: "missing payload" });
+  }
+
+  try {
+    await db.$transaction([
+      // 1. Deduct balance from merchant wallet
+      db.balance.update({
+        where: { userId: merchantId },
+        data: {
+          amount: { decrement: amount },
+        },
+      }),
+
+      // 2. Mark settlement SUCCESS
+      db.settlement.update({
+        where: { id: settlementId },
+        data: {
+          status: "SUCCESS",
+          processedAt: new Date(),
+        },
+      }),
+    ]);
+
+    return res.status(200).json({ msg: "settlement processed" });
+  } catch (error) {
+    console.error("merchantSettlementWebHook error", error);
+
+    try {
+      // mark settlement failed if error
+      await db.settlement.update({
+        where: { id: settlementId },
+        data: { status: "FAILED" },
+      });
+    } catch {}
+
+    return res.status(500).json({ msg: "settlement failed" });
   }
 });
 

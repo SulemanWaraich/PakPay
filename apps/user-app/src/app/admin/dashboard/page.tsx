@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { CheckCircle2, XCircle, Download } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Merchant {
   id: number;
@@ -20,12 +21,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchMerchants = async () => {
       try {
         const res = await fetch("/api/admin/merchants");
-        if (!res.ok) throw new Error("Failed to fetch merchants");
+        if (res.status === 403){
+          router.push("/auth/signin");
+          return; // stop executing
+        } 
+
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || "Failed to load merchants");
+        }
 
         const data = await res.json();
         setMerchants(data);
@@ -87,7 +97,7 @@ export default function AdminDashboard() {
   );
 }
 
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  if (error) return <div className="p-6 text-red-500 text-center text-xl w-full">{error}</div>;
 
   return (
     <div className="p-6">

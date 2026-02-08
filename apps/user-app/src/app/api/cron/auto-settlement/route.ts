@@ -59,11 +59,11 @@ export async function POST() {
         data: {
           merchantId,
           amount,
-          status: "SUCCESS",
+          status: "PROCESSING",
           scheduledFor: T_PLUS_2,
           processedAt: new Date()
-        }
-      })
+        },
+      });
 
       // 🔗 Link transactions → settlement
       await prisma.merchantTransaction.updateMany({
@@ -75,14 +75,24 @@ export async function POST() {
           settledAt: new Date(),
           settlementId: settlement.id
         }
-      })
+      });
+    
+      await fetch("http://localhost:3003/merchantSettlementWebHook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settlementId: settlement.id,
+          merchantId,
+          amount,
+        }),
+      });
     }
 
     // 🔓 5️⃣ Release lock
     await unlock()
 
     return NextResponse.json({
-      message: "Auto-settlement completed",
+      message: "Auto-settlement triggered",
       merchants: Object.keys(grouped).length
     })
 

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const BusinessProfileSettings = () => {
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -31,6 +32,7 @@ const BusinessProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isLocked = kycStatus === "VERIFIED";
+  const router = useRouter();
 
 
   useEffect(() => {
@@ -44,8 +46,10 @@ const BusinessProfileSettings = () => {
     const fetchProfile = async () => {
       try {
         const res = await fetch("/api/merchant", { cache: "no-store" });
+       
         if (res.status === 401) {
-           redirect("/auth/signin")
+          router.push("/auth/signin");
+          return; // stop executing
         }
 
  
@@ -134,7 +138,7 @@ const BusinessProfileSettings = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
+      <div className="min-h-screen flex items-center justify-center text-xl w-full text-red-500">
         {error}
       </div>
     );

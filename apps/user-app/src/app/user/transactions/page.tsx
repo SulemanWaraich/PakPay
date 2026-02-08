@@ -23,14 +23,15 @@ export default async function TransactionsPage({
 }: {
   searchParams: SearchParams
 }) {
-  try {
-    const session = await getServerSession(authOptions)
+   const session = await getServerSession(authOptions)
   
      // ❗ Proper session check
           if (!session?.user?.id) {
              redirect("/auth/signin") // 👈 or your login route
            } 
       
+  try {
+   
   
     // Parse filter parameters
     const typeFilter = searchParams.type

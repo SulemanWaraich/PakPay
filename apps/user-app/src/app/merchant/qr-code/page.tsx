@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { AlertTriangle, ShieldAlert, FileText } from "lucide-react";
 import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 
 type Merchant = {
@@ -20,6 +21,8 @@ const QRCodePage = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
 
   // --------------------------------------------------
   // 🔥 Fetch merchant data + determine QR eligibility
@@ -29,9 +32,11 @@ const QRCodePage = () => {
       try {
         const res = await fetch("/api/qr");
 
-        if (res.status === 401) {
-          redirect("/auth/signin")
+          if (res.status === 401) {
+          router.push("/auth/signin");
+          return; // stop executing
         }
+
 
         const data = await res.json();
 

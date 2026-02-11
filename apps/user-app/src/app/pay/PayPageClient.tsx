@@ -24,7 +24,7 @@ export default function PayPage() {
 
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("wallet"); // wallet | bank
+  const [paymentMethod, setPaymentMethod] = useState("WALLET"); // wallet | bank
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +88,7 @@ export default function PayPage() {
       return;
     }
 
-    if (paymentMethod === "wallet") {
+    if (paymentMethod === "WALLET") {
       handleWalletPay();
     } else {
       setOpenBankModal(true);
@@ -139,11 +139,11 @@ export default function PayPage() {
         value={paymentMethod}
         onChange={(e) => setPaymentMethod(e.target.value)}
       >
-        <option value="wallet">Wallet Balance</option>
-        <option value="bank">Bank Transfer</option>
+        <option value="WALLET">Wallet Balance</option>
+        <option value="BANK_TRANSFER">Bank Transfer</option>
       </select>
 
-      {paymentMethod === "bank" && (
+      {paymentMethod === "BANK_TRANSFER" && (
         <select
           className="w-full border px-3 py-2 rounded-lg mb-3"
           value={bankKey}

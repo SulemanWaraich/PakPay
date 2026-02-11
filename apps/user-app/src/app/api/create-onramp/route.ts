@@ -28,9 +28,12 @@ export async function POST(req: Request) {
     try {
         const { amount, bank } = await req.json();
         const session = await getServerSession(authOptions);
-        if (!session.user) {
-          return NextResponse.json({ success: false, error: "User not logged in" }, { status: 401 });
-        }
+       if (!session || !session.user) {
+  return NextResponse.json(
+    { success: false, error: "User not logged in" },
+    { status: 401 }
+  );
+}
 
 
         const token = String(Math.random() * 100);
@@ -51,8 +54,8 @@ export async function POST(req: Request) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({amount,
-             token: transaction.token,
-             userId: transaction.userId, }),
+             token,
+             userId: Number(session?.user?.id) }),
             });
 
         return NextResponse.json({ success: true, transaction });

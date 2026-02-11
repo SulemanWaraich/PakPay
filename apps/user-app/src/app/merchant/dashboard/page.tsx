@@ -7,9 +7,16 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
 import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
+// import { io } from "socket.io-client";
+// import MerchantNotificationListener from "../../../components/MerchantNotificationListener";
+import MerchantDashboardClientWrapper from "../../../components/MerchantDashboardClientWrapper";
 
 export default async function MerchantDashboardPage() {
   const session = await getServerSession(authOptions)
+//   const socket = io("http://localhost:5001");
+//   socket.on("bankWebhookEvent", (data) => {
+//   console.log("🔥 LIVE update:", data);
+// });
 
     if (!session?.user?.id || session.user.role !== "MERCHANT") {
       redirect("/auth/signin")
@@ -23,6 +30,7 @@ export default async function MerchantDashboardPage() {
       where: { userId: merchantUserId }
     })
 
+    console.log("🚀 Merchant Profile:", merchant?.userId) // Debug log
     if (!merchant) {
       redirect("/api/selector")
     }
@@ -85,6 +93,7 @@ export default async function MerchantDashboardPage() {
 
     return (
       <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
+            <MerchantDashboardClientWrapper merchantId={merchant.userId} />
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
 

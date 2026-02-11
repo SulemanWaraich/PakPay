@@ -1,6 +1,7 @@
 import express, { json } from "express";
 import db from "@repo/db";
 import rateLimit from "express-rate-limit"
+import { publishEvent } from "./redis.ts";
 
 const app = express();
 app.use(express.json())
@@ -15,14 +16,17 @@ app.use(limiter);
 
 app.post("/hdfcWebHook", async (req, res) => {
   // console.log( req.body.token,req.body.userId ,req.body.amount);
-  
+    console.log("Received onramp webhook:", req.body);
+
+
   const paymentinformation = {
     token : req.body.token,
     userId: req.body.userId,
     amount: req.body.amount
   };
   // console.log(paymentinformation.token, paymentinformation.amount, paymentinformation.userId);
-  
+  console.log("Received onramp webhook:", paymentinformation);
+
 try {
   await db.$transaction([
 
@@ -45,7 +49,15 @@ try {
       status: "Success"
     }
   })
-  ])
+  ]);
+
+   await publishEvent("web-app-channel", {
+      type: "onRampSuccess",
+      userId: paymentinformation.userId,
+      amount: paymentinformation.amount,
+      token: paymentinformation.token,
+    });
+
   return res.status(200).json({msg: "captured"});
 } catch (error) {
   console.log(error);
@@ -79,6 +91,13 @@ app.post("/withdrawWebHook", async (req, res) => {
         data: { status: "Success" },
       }),
     ]);
+
+    await publishEvent("web-app-channel", {
+      type: "offRampSuccess",
+      userId: userId,
+      amount: amount,
+      token: token,
+    });
 
     return res.status(200).json({ msg: "withdraw captured" });
   } catch (error) {
@@ -139,6 +158,14 @@ try {
     },
   });
 
+  await publishEvent("web-app-channel", {
+      type: "merchantPaymentSuccess",
+      customerId: paymentinformation.customerId,
+      amount: paymentinformation.amount,
+      token: paymentinformation.token,
+      merchantId: paymentinformation.merchantId
+    });
+
 
   return res.status(200).json({msg: "captured"});
 } catch (error) {
@@ -175,6 +202,13 @@ app.post("/merchantSettlementWebHook", async (req, res) => {
         },
       }),
     ]);
+
+    await publishEvent("web-app-channel", {
+      type: "merchantSettlementSuccess",
+      merchantId: merchantId,
+      amount: amount,
+      settlementId: settlementId,
+    });
 
     return res.status(200).json({ msg: "settlement processed" });
   } catch (error) {

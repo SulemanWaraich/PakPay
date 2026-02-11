@@ -3,6 +3,7 @@ import  prisma  from "@repo/db";
 import { nanoid } from "nanoid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
+import { showToast } from "../../lib/toastMessage";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,12 @@ export async function POST(req: Request) {
      if (!session?.user?.id) {
       return Response.json({ error: "User not logged in" }, { status: 401 });
     }
+
+    const origin = req.headers.get("origin");
+
+    if (!origin) {
+      throw new Error("Missing request origin");
+}
 
     const customerId = session.user.id;
 
@@ -72,6 +79,7 @@ export async function POST(req: Request) {
       });
 
       if (existing) {
+        showToast("error", "Duplicate payment attempt detected");
         return NextResponse.json({
           success: true,
           message: "Payment already processed",
@@ -94,7 +102,7 @@ export async function POST(req: Request) {
         // id: Number(paymentId),
         merchantId: id,
         amount,
-        // customerId: Number(customerId),
+        customerId: Number(customerId),
         paymentMethod,
         ref: ref,
         status: "PENDING",
@@ -104,13 +112,13 @@ export async function POST(req: Request) {
     // -------------------------------
     // 5. Update merchant balance
     // -------------------------------
-    await fetch("/api/onramp-proxy", {
+    await fetch(`http://localhost:3003/merchantWebHook`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({amount,
-             token: ref,
              merchantId: merchant.userId,
-            customerId: customerId }),
+             customerId: Number(customerId),
+             token: ref }),
             });
 
     // -------------------------------

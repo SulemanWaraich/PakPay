@@ -1,4 +1,4 @@
-name: Build and Deploy to Docker Hub
+name: Build and Deploy with Docker Compose
 
 on:
   push:
@@ -6,59 +6,41 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Check Out Repo
-      uses: actions/checkout@v2
+      - name: Check Out Repo
+        uses: actions/checkout@v2
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and Push user-app
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: ./docker/Dockerfile.user
-        push: true
-        tags: suleman100devx/pakpay:latest  # Replace with your Docker Hub username and repository
-        build-args: |
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          PRISMA_ACCELERATE_URL=${{ secrets.PRISMA_ACCELERATE_URL }}
+      - name: Build and Push Docker Compose Images
+        run: |
+          # Build and push images defined in docker-compose.yml
+          docker compose -f docker/docker-compose.yml build --push
 
-    - name: Build and Push bank-webhook
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: ./docker/Dockerfile.bank-webhook
-        push: true
-        tags: suleman100devx/pakpay-bank-webhook:latest
-        build-args: |
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
+      - name: Verify Pushed Images
+        run: |
+          docker compose -f docker/docker-compose.yml pull
 
-    - name: Verify Pushed Image
-      run: |
-        docker pull suleman100devx/pakpay:latest  # Replace with your Docker Hub username and repository
-        docker pull suleman100devx/pakpay-bank-webhook:latest
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/PakPay || exit 1
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          sudo docker pull suleman100devx/pakpay:latest
-          sudo docker stop web-app || true
-          sudo docker rm web-app || true
-          sudo docker network create pakpay-network || true
-          sudo docker run -d --name web-app --network pakpay-network --restart always -p 3005:3000 --env-file ~/.env suleman100devx/pakpay:latest
+            # Pull latest images via docker-compose
+            docker compose -f docker/docker-compose.yml pull
 
-          sudo docker pull suleman100devx/pakpay-bank-webhook:latest
-          sudo docker stop bank-webhook || true
-          sudo docker rm bank-webhook || true
-          sudo docker network create pakpay-network || true
-          sudo docker run -d --name bank-webhook --network pakpay-network --restart always -p 4000:3003 --env-file ~/.env suleman100devx/pakpay-bank-webhook:latest
+            # Stop and remove old containers
+            docker compose -f docker/docker-compose.yml down
+
+            # Start containers with updated images
+            docker compose -f docker/docker-compose.yml up -d --remove-orphans

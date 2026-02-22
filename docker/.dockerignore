@@ -1,0 +1,12 @@
+node_modules
+.git
+.next
+dist
+build
+coverage
+.env
+*.log
+Dockerfile*
+docker-compose.yml
+apps/*/node_modules
+packages/*/node_modules

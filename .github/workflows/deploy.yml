@@ -21,7 +21,7 @@ jobs:
       - name: Build and Push Docker Compose Images
         run: |
           # Build and push images defined in docker-compose.yml
-          docker compose -f docker/docker-compose.yml build --push
+          docker compose -f docker-compose.yml build --push
 
       - name: Verify Pushed Images
         run: |
@@ -37,10 +37,10 @@ jobs:
             cd ~/PakPay || exit 1
 
             # Pull latest images via docker-compose
-            docker compose -f docker/docker-compose.yml pull
+            docker compose -f docker-compose.yml pull
 
             # Stop and remove old containers
-            docker compose -f docker/docker-compose.yml down
+            docker compose -f docker-compose.yml down
 
             # Start containers with updated images
-            docker compose -f docker/docker-compose.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml up -d --remove-orphans

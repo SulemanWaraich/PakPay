@@ -1,0 +1,9 @@
+{
+  "name": "socket-gateway",
+  "version": "1.0.0",
+  "main": "dist/notification-server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/notification-server.js"
+  }
+}

@@ -19,41 +19,44 @@ const Navbar = () => {
     { name: "Contact", href: "#contact" },
   ];
 
+  // Show links only on landing pages
   const isLandingPage = pathname === "/" || pathname.startsWith("/landing");
-const dashboardHref =
-  session?.user?.role === "MERCHANT"
-    ? "/merchant/dashboard"
-    : "/user/dashboard";
+
+  const dashboardHref =
+    session?.user?.role === "MERCHANT"
+      ? "/merchant/dashboard"
+      : "/user/dashboard";
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border ">
+    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container-max section-padding">
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
+          
           {/* Logo */}
           <a href="/" className="flex items-center justify-center text-center gap-2">
-           
-            <span className="sm:text-3xl text-2xl  font-bold text-green-600 mt-2">PakPay</span>
+            <span className="sm:text-3xl text-2xl font-bold text-green-600 mt-2">
+              PakPay
+            </span>
           </a>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - SHOW ONLY ON LANDING PAGE */}
           <div className="hidden lg:flex items-center gap-8">
-
-            {!session
-              ? navLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-                  >
-                    {link.name}
-                  </a>
-                ))
-              : null /* Authenticated users may not need full landing links */}
+            {isLandingPage && !session &&
+              navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+                >
+                  {link.name}
+                </a>
+              ))
+            }
           </div>
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-4">
-          {!session ? (
+            {!session ? (
               <>
                 <Link href="/api/auth/signin">
                   <p className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -102,18 +105,20 @@ const dashboardHref =
         {isMobileMenuOpen && (
           <div className="lg:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
-             {!session
-                ? navLinks.map((link) => (
-                    <a
-                      key={link.name}
-                      href={link.href}
-                      className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {link.name}
-                    </a>
-                  ))
-                : null}
+
+              {/* Mobile Links - SHOW ONLY ON LANDING PAGE */}
+              {isLandingPage && !session &&
+                navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {link.name}
+                  </a>
+                ))
+              }
 
               <div className="flex flex-col gap-3 pt-4 border-t border-border">
                 {!session ? (
@@ -131,7 +136,7 @@ const dashboardHref =
                   </>
                 ) : (
                   <>
-                    <Link href="/dashboard">
+                    <Link href={dashboardHref}>
                       <Button variant="pakpay-outline" size="sm" className="w-fit">
                         Dashboard
                       </Button>
@@ -146,6 +151,7 @@ const dashboardHref =
                   </>
                 )}
               </div>
+
             </div>
           </div>
         )}

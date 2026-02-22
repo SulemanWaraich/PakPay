@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'; // ensures page is not statically render
 
 export default function SigninPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="text-center text-2xl mx-auto h-screen flex items-center justify-center">Loading...</div>}>
       <SigninComponent />
     </Suspense>
   );

@@ -8,7 +8,7 @@ export default function TransactionsLoading() {
 
         {/* Text */}
         <p className="text-sm font-medium text-muted-foreground">
-          Loading your transactions…
+          Loading your Transactions…
         </p>
       </div>
     </div>

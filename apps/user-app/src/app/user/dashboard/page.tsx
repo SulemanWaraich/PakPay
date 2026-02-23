@@ -156,8 +156,8 @@ export default async function DashboardPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { type: "OnRamp", amount: allTransactions[0]?.amount, time: allTransactions[0]?.time, color: "green" },
-                  { type: "Transfer", amount: allTransactions[1]?.amount, time: allTransactions[1]?.time, color: "blue" },
+                  { type: "Deposit", amount: allTransactions[0]?.amount, time: allTransactions[0]?.time, color: "green" },
+                  { type: "Withdrawal", amount: allTransactions[1]?.amount, time: allTransactions[1]?.time, color: "blue" },
                   { type: "P2P", amount: allTransactions[2]?.amount, time: allTransactions[3]?.time, color: "purple" },
                 ].map((activity, i) => (
                   <Card key={i} className="bg-white/80 border border-gray-100/50 shadow-sm">

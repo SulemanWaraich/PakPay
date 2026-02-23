@@ -61,7 +61,7 @@ export default function ActivityChart() {
           <Line
             type="monotone"
             dataKey="offRamp"
-            name="OffRamp"
+            name="Withdrawal"
             stroke="#4f46e5"
             strokeWidth={3}
             dot={{ r: 5, fill: "#4f46e5", stroke: "#fff", strokeWidth: 2 }}
@@ -82,7 +82,7 @@ export default function ActivityChart() {
           <Line
             type="monotone"
             dataKey="onRamp"
-            name="OnRamp"
+            name="Deposit"
             stroke="#22c55e"
             strokeWidth={3}
             dot={{ r: 5, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}

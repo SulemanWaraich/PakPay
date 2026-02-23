@@ -27,7 +27,10 @@ export default async function MerchantDashboardPage() {
     const merchantUserId = Number(session.user.id)
 
     const merchant = await prisma.merchantProfile.findUnique({
-      where: { userId: merchantUserId }
+      where: { userId: merchantUserId },
+      include: {
+    user: true
+  }
     })
 
     console.log("🚀 Merchant Profile:", merchant?.userId) // Debug log
@@ -96,9 +99,23 @@ export default async function MerchantDashboardPage() {
             <MerchantDashboardClientWrapper merchantId={merchant.userId} />
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
+                        {/* Greeting */}
+
+                        {/* <div className="mb-6 sm:text-left mt-2 text-center">
+              <div className="flex items-center sm:flex-row flex-col gap-2 mb-1">
+                <div className="sm:w-2 sm:h-2 w-2 h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+                <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent text-center">
+                  Good Afternoon, {merchant?.user?.name ?? 'NA'}
+                </h1>
+              </div>
+              <p className="text-gray-600 text-sm ml-4">Welcome back to your financial dashboard</p>
+            </div> */}
 
             <div className="mb-6 mt-2">
-              <h1 className="text-3xl font-bold text-emerald-700">Merchant Dashboard</h1>
+               <h1 className="sm:text-4xl text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mt-1 mb-1">
+                  Good Afternoon, {merchant?.user?.name ?? 'NA'}
+                </h1>
+              <h1 className="text-2xl font-bold text-emerald-700">Welcome to your Merchant Dashboard</h1>
               <p className="text-sm text-gray-600">
                 Auto-settlement every 2 days (T+2)
               </p>

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
 import { NextResponse } from "next/server";
 import cloudinary from "../../lib/cloudinary";
-import { MerchantCategory } from "@prisma/client";
+// import { MerchantCategory } from "@prisma/client";
 import  QRCode  from "qrcode";
 
 

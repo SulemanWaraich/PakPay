@@ -97,7 +97,7 @@ export default function MerchantTransactionsPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
          <h1 className="pt-4 text-2xl sm:text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1">
-              Merchant Transactions
+              Invoices
             </h1>
         <Button variant="outline" onClick={exportCSV}>
           <Download className="w-4 h-4 mr-2" />

@@ -1,4 +1,4 @@
-export default function TransactionsLoading() {
+export default function MerchantTransactionsLoading() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card px-8 py-6 shadow-md">

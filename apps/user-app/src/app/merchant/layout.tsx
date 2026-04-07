@@ -32,7 +32,7 @@ export default function Layout({
         ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28 `}>
             <div className="sm:w-52 w-28 ">
                 <SidebarItem href={"/merchant/dashboard"} icon={<HomeIcon />} title="Home" />
-                <SidebarItem href={"/merchant/transactions"} icon={<TransactionsIcon />} title="Transactions" />
+                <SidebarItem href={"/merchant/transactions"} icon={<TransactionsIcon />} title="Invoices" />
                 <SidebarItem href={"/merchant/qr-code"} icon={<P2PTransferIcon />} title="QR Code" />
                 <SidebarItem href={"/merchant/business-profile"} icon={<TransferIcon />} title="Business Profile" />
             </div>

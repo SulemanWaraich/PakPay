@@ -11,6 +11,11 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Navbar from "../components/Navbar";
 import { Footer2 } from "../components/Footer2";
+import { NotificationProvider } from "../components/NotificationProvider";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./lib/auth";
+
+// Get session on the server side for notifications
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,11 +25,13 @@ export const metadata: Metadata = {
   description: "Secure payment platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
-}): JSX.Element {
+}): Promise<JSX.Element> {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
       <head>
@@ -56,7 +63,9 @@ export default function RootLayout({
                <AnalyticsProvider />   
             </Suspense>
             <Navbar />
+            <NotificationProvider userId={session?.user?.id} merchantId={session?.user?.role === "MERCHANT" ? session?.user?.merchantId : undefined} >
           {children}
+          </NotificationProvider>
           <Footer2 />
         </Providers>
 

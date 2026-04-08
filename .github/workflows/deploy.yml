@@ -41,7 +41,7 @@ jobs:
             cd /home/ec2-user/PakPay || exit 1
 
             # Write production .env file from secrets
-            cat > .env << 'EOF'
+            cat > .env << EOF
             NEXT_PUBLIC_SOCKET_URL=${{ secrets.NEXT_PUBLIC_SOCKET_URL }}
             NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}
             SOCKET_CORS_ORIGIN=${{ secrets.SOCKET_CORS_ORIGIN }}
@@ -56,4 +56,4 @@ jobs:
             docker compose -f docker-compose.yml down
 
             # Start containers with updated images
-            docker compose -f docker-compose.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml up -d --no-build --remove-orphans

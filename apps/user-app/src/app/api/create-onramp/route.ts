@@ -27,6 +27,21 @@ export async function POST(req: Request) {
 
     try {
         const { amount, bank } = await req.json();
+
+        // Input validation
+        if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 100000) {
+            return NextResponse.json(
+                { success: false, error: "Invalid amount. Must be a positive number up to 100,000." },
+                { status: 400 }
+            );
+        }
+        if (!bank || typeof bank !== 'string' || bank.trim().length === 0) {
+            return NextResponse.json(
+                { success: false, error: "Invalid bank provider." },
+                { status: 400 }
+            );
+        }
+
         const session = await getServerSession(authOptions);
        if (!session || !session.user) {
   return NextResponse.json(
@@ -34,6 +49,17 @@ export async function POST(req: Request) {
     { status: 401 }
   );
 }
+
+        // Additional rate limiting per user
+        const userKey = `user-${session.user.id}`;
+        const userCurrent: any = rateLimit.get(userKey) || 0;
+        if (userCurrent >= 10) { // stricter limit per user
+            return NextResponse.json(
+                { success: false, error: "Too many requests from this user. Try again later." },
+                { status: 429 }
+            );
+        }
+        rateLimit.set(userKey, userCurrent + 1);
 
 
         const token = String(Math.random() * 100);

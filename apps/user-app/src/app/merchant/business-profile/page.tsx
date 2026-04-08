@@ -28,6 +28,14 @@ const BusinessProfileSettings = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
+  // KYC Document states
+  const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
+  const [idDocumentPreview, setIdDocumentPreview] = useState<string | null>(null);
+  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
+  const [businessLicensePreview, setBusinessLicensePreview] = useState<string | null>(null);
+  const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
+  const [addressProofPreview, setAddressProofPreview] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +73,9 @@ const BusinessProfileSettings = () => {
         setAddress(data.address || "");
         setKycStatus(data.kycStatus);
         setLogoPreview(data.logoUrl || null);
+        setIdDocumentPreview(data.idDocumentUrl || null);
+        setBusinessLicensePreview(data.businessLicenseUrl || null);
+        setAddressProofPreview(data.addressProofUrl || null);
       } catch {
         setError("Failed to load business profile");
       } finally {
@@ -78,6 +89,21 @@ const BusinessProfileSettings = () => {
  const handleLogoSelect = (file: File) => {
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleIdDocumentSelect = (file: File) => {
+    setIdDocumentFile(file);
+    setIdDocumentPreview(URL.createObjectURL(file));
+  };
+
+  const handleBusinessLicenseSelect = (file: File) => {
+    setBusinessLicenseFile(file);
+    setBusinessLicensePreview(URL.createObjectURL(file));
+  };
+
+  const handleAddressProofSelect = (file: File) => {
+    setAddressProofFile(file);
+    setAddressProofPreview(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
@@ -101,6 +127,15 @@ const BusinessProfileSettings = () => {
 
       if (logoFile) {
         formData.append("logo", logoFile);
+      }
+      if (idDocumentFile) {
+        formData.append("idDocument", idDocumentFile);
+      }
+      if (businessLicenseFile) {
+        formData.append("businessLicense", businessLicenseFile);
+      }
+      if (addressProofFile) {
+        formData.append("addressProof", addressProofFile);
       }
 
       const res = await fetch("/api/qr", {
@@ -236,6 +271,100 @@ const BusinessProfileSettings = () => {
                 placeholder="Enter business address"
                 disabled={isLocked}
               />
+            </div>
+
+            {/* KYC Documents Section */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-lg font-medium mb-4">KYC Verification Documents</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Upload the following documents to complete your KYC verification process.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* ID Document */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">ID Document</label>
+                  <div
+                    onClick={() => !isLocked && document.getElementById('idDocument')?.click()}
+                    className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                      isLocked ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    {idDocumentPreview ? (
+                      <img src={idDocumentPreview} alt="ID Document" className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <div className="text-center">
+                        <Image className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">ID Document</p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id="idDocument"
+                    type="file"
+                    accept="image/*,.pdf"
+                    hidden
+                    disabled={isLocked}
+                    onChange={(e) => e.target.files && handleIdDocumentSelect(e.target.files[0])}
+                  />
+                </div>
+
+                {/* Business License */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Business License</label>
+                  <div
+                    onClick={() => !isLocked && document.getElementById('businessLicense')?.click()}
+                    className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                      isLocked ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    {businessLicensePreview ? (
+                      <img src={businessLicensePreview} alt="Business License" className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <div className="text-center">
+                        <Image className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Business License</p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id="businessLicense"
+                    type="file"
+                    accept="image/*,.pdf"
+                    hidden
+                    disabled={isLocked}
+                    onChange={(e) => e.target.files && handleBusinessLicenseSelect(e.target.files[0])}
+                  />
+                </div>
+
+                {/* Address Proof */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address Proof</label>
+                  <div
+                    onClick={() => !isLocked && document.getElementById('addressProof')?.click()}
+                    className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                      isLocked ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    {addressProofPreview ? (
+                      <img src={addressProofPreview} alt="Address Proof" className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <div className="text-center">
+                        <Image className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Address Proof</p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id="addressProof"
+                    type="file"
+                    accept="image/*,.pdf"
+                    hidden
+                    disabled={isLocked}
+                    onChange={(e) => e.target.files && handleAddressProofSelect(e.target.files[0])}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

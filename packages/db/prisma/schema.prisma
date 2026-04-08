@@ -28,6 +28,7 @@ model User {
 
   merchantProfile  MerchantProfile?
   merchantPayments MerchantTransaction[] @relation("CustomerTransactions")
+  disputes         Dispute[]
 }
 
 model MerchantProfile {
@@ -41,6 +42,14 @@ model MerchantProfile {
 
   logoUrl      String?
   logoPublicId String?
+
+  // KYC Documents
+  idDocumentUrl      String?
+  idDocumentPublicId String?
+  businessLicenseUrl      String?
+  businessLicensePublicId String?
+  addressProofUrl      String?
+  addressProofPublicId String?
 
   kycStatus KycStatus @default(PENDING)
   qrPayload String?   @unique
@@ -79,6 +88,8 @@ model MerchantTransaction {
   ref String? @unique
 
   createdAt DateTime @default(now())
+
+  disputes Dispute[]
 }
 
 model Settlement {
@@ -211,4 +222,26 @@ enum OffRampStatus {
   Success
   Failure
   Processing
+}
+
+enum DisputeStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Dispute {
+  id            Int           @id @default(autoincrement())
+  transactionId Int
+  userId        Int           // User who filed the dispute
+  reason        String
+  description   String?
+  status        DisputeStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+  adminNotes    String?
+
+  transaction   MerchantTransaction @relation(fields: [transactionId], references: [id])
+  user          User                @relation(fields: [userId], references: [id])
 }

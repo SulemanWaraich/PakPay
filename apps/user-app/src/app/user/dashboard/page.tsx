@@ -7,6 +7,9 @@ import { authOptions } from "../../lib/auth"
 import { formatDistanceToNow } from "date-fns";
 import { AppbarClient } from "../../../components/AppbarClient"
 import { redirect } from "next/navigation"
+import { AddMoney } from "../../../components/AddMoneyCard"
+import { WithdrawMoney } from "../../../components/WithDrawMoneyCard"
+import { DisputesList } from "../../../components/DisputesList"
 
 export default async function DashboardPage() {
     const userSession = await getServerSession(authOptions)
@@ -147,6 +150,12 @@ export default async function DashboardPage() {
                 <ActivityChart />
               </CardContent>
             </Card>
+
+            {/* Action Cards */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <AddMoney />
+              <WithdrawMoney />
+            </div>
   
             {/* Recent Activity */}
             <div className="mt-6">
@@ -196,6 +205,15 @@ export default async function DashboardPage() {
                   </Card>
                 ))}
               </div>
+            </div>
+
+            {/* Disputes Section */}
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                Transaction Disputes
+              </h2>
+              <DisputesList />
             </div>
           </div>
         </main>

@@ -3,6 +3,12 @@ import  bcrypt from "bcryptjs"
 import db from "@repo/db"
 import { pages } from "next/dist/build/templates/app-page";
 import { signIn } from "next-auth/react";
+import { LRUCache } from "lru-cache";
+
+const failedLoginAttempts = new LRUCache({
+  max: 1000, // store up to 1000 users
+  ttl: 15 * 60 * 1000, // 15 minutes window
+});
 
 
 export const authOptions = {
@@ -21,15 +27,28 @@ export const authOptions = {
             });
 
             if (!existingUser) {
-               
+                // Increment failed attempts for unknown email too
+                const key = `login-${credentials.email}`;
+                const attempts: any = failedLoginAttempts.get(key) || 0;
+                failedLoginAttempts.set(key, attempts + 1);
                 return null;
+                }
+
+                // Check if account is locked
+                const key = `login-${existingUser.email}`;
+                const attempts: any = failedLoginAttempts.get(key) || 0;
+                if (attempts >= 5) {
+                    throw new Error("Account locked due to too many failed login attempts. Try again in 15 minutes.");
                 }
 
                 const passwordValidation = await bcrypt.compare(credentials.password, existingUser.password);
                 if (!passwordValidation) {
+                    failedLoginAttempts.set(key, attempts + 1);
                     return null
             }
 
+            // Reset failed attempts on successful login
+            failedLoginAttempts.delete(key);
           
             return {
                         id: existingUser.id.toString(),

@@ -11,7 +11,7 @@ export const NotificationProvider = ({ children, userId, merchantId }:
   { children: ReactNode, userId?: number, merchantId?: number }) => {
 
   useEffect(() => {
-    const socket = io("http://localhost:5001", {
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5001", {
       auth: { userId, merchantId }
     });
 

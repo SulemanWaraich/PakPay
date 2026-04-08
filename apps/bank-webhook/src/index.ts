@@ -2,6 +2,7 @@ import express, { json } from "express";
 import db from "@repo/db";
 import rateLimit from "express-rate-limit"
 import { publishEvent } from "./redis.ts";
+import { createHmac } from "crypto";
 
 const app = express();
 app.use(express.json())
@@ -14,7 +15,28 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.post("/hdfcWebHook", async (req, res) => {
+// Webhook signature verification function
+function verifyWebhookSignature(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const signature = req.headers['x-signature'] as string;
+  const secret = process.env.WEBHOOK_SECRET;
+
+  if (!signature || !secret) {
+    return res.status(401).json({ msg: "Unauthorized: Missing signature or secret" });
+  }
+
+  const bodyString = JSON.stringify(req.body);
+  const expectedSignature = createHmac('sha256', secret)
+    .update(bodyString, 'utf8')
+    .digest('hex');
+
+  if (signature !== expectedSignature) {
+    return res.status(401).json({ msg: "Unauthorized: Invalid signature" });
+  }
+
+  next();
+}
+
+app.post("/hdfcWebHook", verifyWebhookSignature, async (req, res) => {
   // console.log( req.body.token,req.body.userId ,req.body.amount);
     console.log("Received onramp webhook:", req.body);
 
@@ -66,7 +88,7 @@ try {
 })
 
 
-app.post("/withdrawWebHook", async (req, res) => {
+app.post("/withdrawWebHook", verifyWebhookSignature, async (req, res) => {
   const token = req.body.token;
   const userId = Number(req.body.user_identifier);
   const amount = Number(req.body.amount);
@@ -118,7 +140,7 @@ app.post("/withdrawWebHook", async (req, res) => {
   }
 });
 
-app.post("/merchantWebHook", async (req, res) => {
+app.post("/merchantWebHook", verifyWebhookSignature, async (req, res) => {
   // console.log( req.body.token,req.body.userId ,req.body.amount);
   
   const paymentinformation = {
@@ -174,7 +196,7 @@ try {
 }
 })
 
-app.post("/merchantSettlementWebHook", async (req, res) => {
+app.post("/merchantSettlementWebHook", verifyWebhookSignature, async (req, res) => {
   const settlementId = Number(req.body.settlementId);
   const merchantId = Number(req.body.merchantId);
   const amount = Number(req.body.amount);
@@ -228,4 +250,8 @@ app.post("/merchantSettlementWebHook", async (req, res) => {
 
 app.listen(3003, "0.0.0.0", () => {
   // console.log("Bank Webhook running on http://0.0.0.0:3003");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });

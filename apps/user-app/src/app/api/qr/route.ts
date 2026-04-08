@@ -28,6 +28,9 @@ export async function GET() {
        address: true,
        kycStatus: true,
        logoUrl: true,
+       idDocumentUrl: true,
+       businessLicenseUrl: true,
+       addressProofUrl: true,
      },
    });
  
@@ -90,6 +93,9 @@ export async function POST(req: Request) {
     const category = formData.get("category") as string;
     const address = formData.get("address") as string;
     const logoFile = formData.get("logo") as File | null;
+    const idDocumentFile = formData.get("idDocument") as File | null;
+    const businessLicenseFile = formData.get("businessLicense") as File | null;
+    const addressProofFile = formData.get("addressProof") as File | null;
 
     if (!businessName || !category || !address) {
       return NextResponse.json(
@@ -149,6 +155,92 @@ export async function POST(req: Request) {
       logoPublicId = uploadResult.public_id;
     }
 
+    // Upload KYC documents
+    let idDocumentUrl = merchant.idDocumentUrl;
+    let idDocumentPublicId = merchant.idDocumentPublicId;
+    let businessLicenseUrl = merchant.businessLicenseUrl;
+    let businessLicensePublicId = merchant.businessLicensePublicId;
+    let addressProofUrl = merchant.addressProofUrl;
+    let addressProofPublicId = merchant.addressProofPublicId;
+
+    // Upload ID Document
+    if (idDocumentFile && idDocumentFile.size > 0) {
+      if (merchant.idDocumentPublicId) {
+        await cloudinary.uploader.destroy(merchant.idDocumentPublicId);
+      }
+      const bytes = await idDocumentFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "pakpay/kyc/id-documents",
+              public_id: `merchant_${userId}_id_document`,
+              overwrite: true,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              resolve(result);
+            }
+          )
+          .end(buffer);
+      });
+      idDocumentUrl = uploadResult.secure_url;
+      idDocumentPublicId = uploadResult.public_id;
+    }
+
+    // Upload Business License
+    if (businessLicenseFile && businessLicenseFile.size > 0) {
+      if (merchant.businessLicensePublicId) {
+        await cloudinary.uploader.destroy(merchant.businessLicensePublicId);
+      }
+      const bytes = await businessLicenseFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "pakpay/kyc/business-licenses",
+              public_id: `merchant_${userId}_business_license`,
+              overwrite: true,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              resolve(result);
+            }
+          )
+          .end(buffer);
+      });
+      businessLicenseUrl = uploadResult.secure_url;
+      businessLicensePublicId = uploadResult.public_id;
+    }
+
+    // Upload Address Proof
+    if (addressProofFile && addressProofFile.size > 0) {
+      if (merchant.addressProofPublicId) {
+        await cloudinary.uploader.destroy(merchant.addressProofPublicId);
+      }
+      const bytes = await addressProofFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "pakpay/kyc/address-proof",
+              public_id: `merchant_${userId}_address_proof`,
+              overwrite: true,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              resolve(result);
+            }
+          )
+          .end(buffer);
+      });
+      addressProofUrl = uploadResult.secure_url;
+      addressProofPublicId = uploadResult.public_id;
+    }
+
    await prisma.merchantProfile.upsert({
   where: { userId },
   update: {
@@ -157,6 +249,12 @@ export async function POST(req: Request) {
     address,
     logoUrl,
     logoPublicId,
+    idDocumentUrl,
+    idDocumentPublicId,
+    businessLicenseUrl,
+    businessLicensePublicId,
+    addressProofUrl,
+    addressProofPublicId,
    // 🔹 Only set PENDING if current status is not VERIFIED
     kycStatus: merchant.kycStatus === "PENDING" ? "PENDING" : "VERIFIED",
   },
@@ -167,6 +265,12 @@ export async function POST(req: Request) {
     address,
     logoUrl,
     logoPublicId,
+    idDocumentUrl,
+    idDocumentPublicId,
+    businessLicenseUrl,
+    businessLicensePublicId,
+    addressProofUrl,
+    addressProofPublicId,
     qrPayload: `PAKPAY-${userId}-${Date.now()}`,
   },
 });

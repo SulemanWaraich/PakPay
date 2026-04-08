@@ -21,3 +21,6 @@ RUN npm run build --filter=bank-webhook...
 
 # Start webhook directly (no entrypoint needed)
 CMD ["npm", "run", "start-bank-webhook"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3003/health || exit 1

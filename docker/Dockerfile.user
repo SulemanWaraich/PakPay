@@ -28,4 +28,7 @@ RUN chmod +x /usr/src/app/entrypoint.sh
 
 # Run entrypoint → handles migrations first, then starts app
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
 CMD ["npm", "run", "start-user-app"]

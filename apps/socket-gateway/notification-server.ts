@@ -7,12 +7,13 @@ async function startServer() {
   const server = http.createServer();
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000", // your frontend URL
+      origin: process.env.CORS_ORIGIN || "http://localhost:3000", // configurable frontend URL
     },
   })
 
   // 2. Redis subscriber
-  const subscriber = createClient({ url: process.env.REDIS_URL });
+  const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`;
+  const subscriber = createClient({ url: redisUrl });
   await subscriber.connect();
   console.log("Redis Subscriber connected");
 
@@ -23,6 +24,14 @@ async function startServer() {
     if (merchantId) {
       socket.join(`merchant-${merchantId}`);
       console.log(`Merchant connected to room merchant-${merchantId}`);
+    }
+  });
+
+  // Health check endpoint
+  server.on('request', (req, res) => {
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
     }
   });
 
@@ -49,8 +58,9 @@ async function startServer() {
   });
 
   // 5. Start WebSocket server
-  server.listen(5001, () => {
-    console.log("🔥 Notification server running on port 5001");
+  const port = parseInt(process.env.PORT || '5000');
+  server.listen(port, () => {
+    console.log(`🔥 Notification server running on port ${port}`);
   });
 }
 

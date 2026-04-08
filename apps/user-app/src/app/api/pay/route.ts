@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { showToast } from "../../lib/toastMessage";
+import { bankWebhookUrl } from "../../lib/bankWebhookUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
     // -------------------------------
     // 5. Update merchant balance
     // -------------------------------
-    await fetch(`http://localhost:3003/merchantWebHook`, {
+    await fetch(bankWebhookUrl("merchantWebHook"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({amount,

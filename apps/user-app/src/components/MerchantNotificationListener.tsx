@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { showToast } from "../app/lib/toastMessage";
+import { PUBLIC_SOCKET_URL } from "../app/lib/publicEnv";
 
 export default function MerchantNotificationListener({ merchantId }: { merchantId: number }) {
   useEffect(() => {
-    const socket = io("http://localhost:5001", {
+    const socket = io(PUBLIC_SOCKET_URL, {
       auth: { merchantId }
     });
 

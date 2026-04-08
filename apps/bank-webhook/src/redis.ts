@@ -1,8 +1,10 @@
 // bank-webhook/redis.js
 import { createClient } from "redis";
 
+const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
+
 export const redisClient = createClient({
-  url: "redis://localhost:6379",
+  url: redisUrl,
 });
 
 redisClient.on("error", (err) => console.log("Redis Client Error", err));

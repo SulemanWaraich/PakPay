@@ -8,7 +8,10 @@
       "env": [
         "DATABASE_URL",
         "JWT_SECRET",
-        "NEXTAUTH_URL"
+        "NEXTAUTH_URL",
+        "BANK_WEBHOOK_URL",
+        "NEXT_PUBLIC_SOCKET_URL",
+        "NEXT_PUBLIC_BASE_URL"
       ]
     },
     "lint": {},

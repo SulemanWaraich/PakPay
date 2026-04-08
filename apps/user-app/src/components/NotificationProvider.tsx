@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, ReactNode } from "react";
 import { io } from "socket.io-client";
 import { showToast } from "../app/lib/toastMessage";
+import { PUBLIC_SOCKET_URL } from "../app/lib/publicEnv";
 
 interface NotificationContextProps {}
 
@@ -11,7 +12,7 @@ export const NotificationProvider = ({ children, userId, merchantId }:
   { children: ReactNode, userId?: number, merchantId?: number }) => {
 
   useEffect(() => {
-    const socket = io("http://localhost:5001", {
+    const socket = io(PUBLIC_SOCKET_URL, {
       auth: { userId, merchantId }
     });
 

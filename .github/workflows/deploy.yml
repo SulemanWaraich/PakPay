@@ -24,11 +24,12 @@ jobs:
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
           SOCKET_CORS_ORIGIN: ${{ secrets.SOCKET_CORS_ORIGIN }}
         run: |
-          docker compose -f docker/docker-compose.yml build --push
+          # Build and push images defined in docker-compose.yml
+          docker compose -f docker-compose.yml build --push
 
       - name: Verify Pushed Images
         run: |
-          docker compose -f docker/docker-compose.yml pull
+          docker compose -f docker-compose.yml pull
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
@@ -39,7 +40,8 @@ jobs:
           script: |
             cd /home/ec2-user/PakPay || exit 1
 
-            cat > .env << EOF
+            # Write production .env file from secrets
+            cat > .env << 'EOF'
             NEXT_PUBLIC_SOCKET_URL=${{ secrets.NEXT_PUBLIC_SOCKET_URL }}
             NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}
             SOCKET_CORS_ORIGIN=${{ secrets.SOCKET_CORS_ORIGIN }}
@@ -47,6 +49,11 @@ jobs:
             BANK_WEBHOOK_URL=${{ secrets.BANK_WEBHOOK_URL }}
             EOF
 
+            # Pull latest images via docker-compose
             docker compose -f docker/docker-compose.yml pull
+
+            # Stop and remove old containers
             docker compose -f docker/docker-compose.yml down
+
+            # Start containers with updated images
             docker compose -f docker/docker-compose.yml up -d --remove-orphans

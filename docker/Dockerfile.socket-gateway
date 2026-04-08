@@ -1,12 +1,17 @@
-# notification-server/Dockerfile
 FROM node:20
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm ci --no-audit --prefer-offline --progress=false
-
+COPY package.json package-lock.json turbo.json ./
 COPY apps/socket-gateway ./apps/socket-gateway
 COPY packages ./packages
 
-CMD ["node", "dist/notification-server.js"]
+RUN npm ci
+
+WORKDIR /usr/src/app/apps/socket-gateway
+RUN npm run build
+
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+CMD ["node", "apps/socket-gateway/dist/notification-server.js"]

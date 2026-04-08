@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import prisma from "@repo/db"
+import { bankWebhookUrl } from "../../../lib/bankWebhookUrl"
 
 export async function POST() {
   const now = new Date()
@@ -77,7 +78,7 @@ export async function POST() {
         }
       });
     
-      await fetch("http://localhost:3003/merchantSettlementWebHook", {
+      await fetch(bankWebhookUrl("merchantSettlementWebHook"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

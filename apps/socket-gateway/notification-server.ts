@@ -2,17 +2,27 @@ import http from "http";
 import { Server } from "socket.io";
 import { createClient } from "redis";
 
+function getRedisUrl(): string {
+  if (process.env.REDIS_URL) return process.env.REDIS_URL;
+  const host = process.env.REDIS_HOST ?? "localhost";
+  const port = process.env.REDIS_PORT ?? "6379";
+  return `redis://${host}:${port}`;
+}
+
 async function startServer() {
+  const corsOrigin = process.env.SOCKET_CORS_ORIGIN ?? "http://localhost:3000";
+  const port = Number(process.env.PORT ?? "5000");
+
   // 1. Create WebSocket server
   const server = http.createServer();
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000", // your frontend URL
+      origin: corsOrigin,
     },
   })
 
   // 2. Redis subscriber
-  const subscriber = createClient({ url: process.env.REDIS_URL });
+  const subscriber = createClient({ url: getRedisUrl() });
   await subscriber.connect();
   console.log("Redis Subscriber connected");
 
@@ -49,8 +59,8 @@ async function startServer() {
   });
 
   // 5. Start WebSocket server
-  server.listen(5001, () => {
-    console.log("🔥 Notification server running on port 5001");
+  server.listen(port, () => {
+    console.log(`🔥 Notification server running on port ${port}`);
   });
 }
 

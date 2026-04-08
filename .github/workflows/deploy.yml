@@ -34,7 +34,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /home/ec2-user/PakPay/docker || exit 1
+            cd /home/ec2-user/PakPay || exit 1
 
             # Pull latest images via docker-compose
             docker compose -f docker-compose.yml pull

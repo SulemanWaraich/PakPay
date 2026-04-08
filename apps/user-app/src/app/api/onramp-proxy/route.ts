@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { bankWebhookUrl } from "../../lib/bankWebhookUrl";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Call the webhook container internally (use the container name or internal network)
-    const resp = await fetch("http://localhost:3003/hdfcWebHook", {
+    const resp = await fetch(bankWebhookUrl("hdfcWebHook"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

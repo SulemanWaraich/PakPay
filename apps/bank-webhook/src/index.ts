@@ -2,6 +2,7 @@ import express, { json } from "express";
 import db from "@repo/db";
 import rateLimit from "express-rate-limit"
 import { publishEvent } from "./redis.ts";
+import { connectRedis } from "./redis.ts";
 
 const app = express();
 app.use(express.json())
@@ -226,6 +227,12 @@ app.post("/merchantSettlementWebHook", async (req, res) => {
   }
 });
 
-app.listen(3003, "0.0.0.0", () => {
-  // console.log("Bank Webhook running on http://0.0.0.0:3003");
-});
+// Replace app.listen at the bottom with this:
+async function start() {
+  await connectRedis();
+  app.listen(3003, "0.0.0.0", () => {
+    console.log("Bank Webhook running on http://0.0.0.0:3003");
+  });
+}
+
+start();

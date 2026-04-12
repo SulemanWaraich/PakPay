@@ -1,4 +1,3 @@
-// bank-webhook/redis.js
 import { createClient } from "redis";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
@@ -9,7 +8,9 @@ export const redisClient = createClient({
 
 redisClient.on("error", (err) => console.log("Redis Client Error", err));
 
-await redisClient.connect();
+export async function connectRedis() {
+  await redisClient.connect();
+}
 
 export async function publishEvent(channel: string, data: unknown) {
   await redisClient.publish(channel, JSON.stringify(data));

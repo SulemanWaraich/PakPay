@@ -2,11 +2,7 @@ FROM node:20
 
 WORKDIR /usr/src/app
 
-# Accept both DATABASE_URL and PRISMA_ACCELERATE_URL
-ARG DATABASE_URL
-ARG PRISMA_ACCELERATE_URL
-ENV DATABASE_URL=$DATABASE_URL
-ENV PRISMA_ACCELERATE_URL=$PRISMA_ACCELERATE_URL
+# Database URLs are supplied at **container runtime** via compose/env_file (not baked into layers).
 
 # NEXT_PUBLIC_* must be present at build time for the client bundle
 ARG NEXT_PUBLIC_SOCKET_URL=http://localhost:5000

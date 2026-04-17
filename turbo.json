@@ -10,6 +10,9 @@
         "JWT_SECRET",
         "NEXTAUTH_URL",
         "BANK_WEBHOOK_URL",
+        "BANK_WEBHOOK_SECRET",
+        "CRON_SECRET",
+        "REDIS_URL",
         "NEXT_PUBLIC_SOCKET_URL",
         "NEXT_PUBLIC_BASE_URL"
       ]
@@ -19,9 +22,33 @@
     "dev": {
       "dependsOn": ["^db:generate"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "BANK_WEBHOOK_URL",
+        "BANK_WEBHOOK_SECRET",
+        "CRON_SECRET",
+        "REDIS_URL",
+        "NEXT_PUBLIC_SOCKET_URL",
+        "NEXT_PUBLIC_BASE_URL",
+        "SOCKET_CORS_ORIGIN",
+        "ENFORCE_HTTPS",
+        "ENABLE_HSTS",
+        "LOG_LEVEL",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET"
+      ]
     },
     "clean": {
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["^db:generate"],
+      "outputs": [],
       "cache": false
     },
     "db:generate": {

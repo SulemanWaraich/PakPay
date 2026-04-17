@@ -47,31 +47,31 @@ export const AddMoney = () => {
 
     // console.log(data);
 
-    // Trigger dummy-bank webhook asynchronously after a short delay
-    // (async () => {
-    //   const delay = (min: number, max: number) =>
-    //     new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min));
+    void (async () => {
+      const delay = (min: number, max: number) =>
+        new Promise((resolve) =>
+          setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min),
+        )
 
-    //   await delay(2000, 5000); // random delay 2-5s
+      await delay(2000, 5000)
 
-    //   try {
-    //     await fetch("/api/onramp-proxy", {
-    //       method: "POST",
-    //       headers: { "Content-Type": "application/json" },
-    //       body: JSON.stringify({
-    //         amount,
-    //         token: data.transaction.token,
-    //         userId: data.transaction.userId,
-    //       }),
-    //     });
-    //     showToast(
-    //       "success",
-    //       "Transaction confirmed successfully via Bank Webhook!"
-    //     );
-    //   } catch (webhookError) {
-    //     console.error("❌ Failed to trigger dummy bank-webhook:", webhookError);
-    //   }
-    // })();
+      try {
+        const wh = await fetch("/api/onramp-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            token: data.transaction.token,
+            userId: data.transaction.userId,
+          }),
+        })
+        if (wh.ok) {
+          showToast("success", "Transaction confirmed successfully via Bank Webhook!")
+        }
+      } catch (webhookError) {
+        console.error("Failed to trigger bank-webhook:", webhookError)
+      }
+    })()
 
   } catch (error) {
     showToast("error", "Failed to record transaction. Please try again.");

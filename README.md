@@ -159,7 +159,20 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 # Services
 SOCKET_CORS_ORIGIN=http://localhost:3005
 BANK_WEBHOOK_URL=http://bank-webhook:3003
+BANK_WEBHOOK_SECRET=change-me-min-32-chars-for-hmac-signing!!
 REDIS_URL=redis://redis:6379
+
+# Auth (set strong values in production)
+JWT_SECRET=change-me-min-32-characters-long-secret
+NEXTAUTH_URL=http://localhost:3005
+NEXTAUTH_SECRET=change-me-min-32-characters-long-secret
+
+# Cron (optional; required in production for /api/cron/auto-settlement)
+CRON_SECRET=change-me-cron-secret
+
+# TLS helpers (behind reverse proxy)
+ENFORCE_HTTPS=false
+ENABLE_HSTS=false
 ```
 
 ### Production (EC2 `.env`)
@@ -175,10 +188,34 @@ NEXT_PUBLIC_SOCKET_URL=http://13.61.10.49:5000
 # Services
 SOCKET_CORS_ORIGIN=https://pakpay10.site
 BANK_WEBHOOK_URL=http://bank-webhook:3003
+BANK_WEBHOOK_SECRET=your-production-hmac-secret-min-32-chars
 REDIS_URL=redis://redis:6379
+JWT_SECRET=your-production-jwt-secret-min-32-chars
+NEXTAUTH_URL=https://pakpay10.site
+NEXTAUTH_SECRET=your-production-nextauth-secret-min-32-chars
+CRON_SECRET=your-cron-bearer-token
+ENFORCE_HTTPS=true
+ENABLE_HSTS=true
 ```
 
 > ⚠️ `NEXT_PUBLIC_*` variables are baked into the Next.js bundle **at build time**. Always rebuild the `user-app` image after changing them.
+
+### Bank webhook signing (HMAC-SHA256)
+
+`user-app` calls `bank-webhook` with a JSON body and header `x-pakpay-signature: sha256=<hex>`, where the hex is `HMAC-SHA256(BANK_WEBHOOK_SECRET, rawBodyUtf8)` and `rawBodyUtf8` is **exactly** the same string sent as the HTTP body (for example `JSON.stringify(payload)`). `bank-webhook` verifies the signature on every webhook route before mutating balances. Use the **same** `BANK_WEBHOOK_SECRET` in both services.
+
+---
+
+## Testing
+
+```bash
+npm ci
+npm run db:generate:no-engine
+npm test                 # Vitest (unit tests in repo)
+cd apps/user-app && npm run test:e2e   # Playwright (start app on :3000 first)
+```
+
+Load smoke (optional, requires [k6](https://k6.io/)): `BASE_URL=http://localhost:3005 k6 run scripts/k6/pay-smoke.js`
 
 ---
 
@@ -219,13 +256,14 @@ git push origin main
 ┌─────────────────────┐
 │  GitHub Actions      │
 │  1. Checkout code    │
-│  2. Login Docker Hub │
-│  3. Build & Push     │  ← NEXT_PUBLIC_* vars baked in here
+│  2. npm ci + tests   │
+│  3. Login Docker Hub │
+│  4. Build & Push     │  ← NEXT_PUBLIC_* vars baked in here
 │     all images       │
-│  4. SSH into EC2     │
-│  5. Write .env file  │
-│  6. Pull new images  │
-│  7. docker compose   │
+│  5. SSH into EC2     │
+│  6. Write .env file  │
+│  7. Pull new images  │
+│  8. docker compose   │
 │     up --no-build    │
 └─────────────────────┘
         │
@@ -247,6 +285,16 @@ git push origin main
 | `SOCKET_CORS_ORIGIN` | `https://pakpay10.site` |
 | `REDIS_URL` | `redis://redis:6379` |
 | `BANK_WEBHOOK_URL` | `http://bank-webhook:3003` |
+| `DATABASE_URL` | Postgres connection string |
+| `BANK_WEBHOOK_SECRET` | Shared HMAC secret (same in user-app + bank-webhook) |
+| `JWT_SECRET` | Session signing (min 8 chars; use 32+ in prod) |
+| `NEXTAUTH_SECRET` | Optional; falls back to `JWT_SECRET` |
+| `NEXTAUTH_URL` | Public site URL, e.g. `https://pakpay10.site` |
+| `CRON_SECRET` | Bearer token for `/api/cron/auto-settlement` |
+| `PRISMA_ACCELERATE_URL` | Optional Prisma Accelerate URL |
+| `EMAIL_USER` / `EMAIL_PASS` | Contact form SMTP (optional) |
+| `CLOUDINARY_*` | KYC / logo uploads (optional) |
+| `ENFORCE_HTTPS` / `ENABLE_HSTS` | `true` behind TLS terminator |
 
 ---
 

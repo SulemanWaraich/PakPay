@@ -3,44 +3,55 @@ import  prisma  from "@repo/db";
 import { nanoid } from "nanoid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
-import { showToast } from "../../lib/toastMessage";
-import { bankWebhookUrl } from "../../lib/bankWebhookUrl";
+import { postSignedBankWebhook } from "../../lib/signedBankWebhook";
+import { payBodySchema } from "../../lib/validation/schemas";
+import { rateLimitAllow } from "../../lib/rateLimitRedis";
+import { getClientIp } from "../../lib/clientIp";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-     const session = await getServerSession(authOptions);
-     if (!session?.user?.id) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return Response.json({ error: "User not logged in" }, { status: 401 });
     }
 
-    const origin = req.headers.get("origin");
-
-    if (!origin) {
-      throw new Error("Missing request origin");
-}
+    const uid = String(session.user.id);
+    const ip = getClientIp(req);
+    if (
+      !(await rateLimitAllow(`rl:user:pay:${uid}`, 40, 60)) ||
+      !(await rateLimitAllow(`rl:ip:pay:${ip}`, 120, 60))
+    ) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
 
     const customerId = session.user.id;
 
-      // ------------------------------
-    // 2. Receive payment payload
-    // ------------------------------
-
-    const { merchantId, amount, ref, paymentMethod } = await req.json();
-
-    // -------------------------------
-    // 1. Basic validation
-    // -------------------------------
-    if (!merchantId || !amount || amount <= 0) {
-      return NextResponse.json({ error: "Invalid payment request" }, { status: 400 });
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    const parsed = payBodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid payment request", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { merchantId: midRaw, amount, ref, paymentMethod } = parsed.data;
+    const merchantId =
+      typeof midRaw === "number" ? midRaw : Number.parseInt(String(midRaw), 10);
 
     // -------------------------------
     // 2. Merchant existence check
     // -------------------------------
     const merchant = await prisma.merchantProfile.findUnique({
-      where: { id: Number(merchantId) },
+      where: { id: merchantId },
       include: { user: true }
 
     });
@@ -80,7 +91,6 @@ export async function POST(req: Request) {
       });
 
       if (existing) {
-        showToast("error", "Duplicate payment attempt detected");
         return NextResponse.json({
           success: true,
           message: "Payment already processed",
@@ -89,7 +99,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const id = Number(merchantId)
+    const id = merchantId;
     // -------------------------------
     // 4. Create a transaction record
     // -------------------------------
@@ -98,29 +108,26 @@ export async function POST(req: Request) {
     // console.log("Creating payment with ID:", paymentId);
 
 
+    const paymentRef =
+      ref && String(ref).trim().length > 0 ? String(ref).trim() : nanoid(16);
+
     const payment = await prisma.merchantTransaction.create({
       data: {
-        // id: Number(paymentId),
         merchantId: id,
         amount,
         customerId: Number(customerId),
         paymentMethod,
-        ref: ref,
+        ref: paymentRef,
         status: "PENDING",
-              },
+      },
     });
 
-    // -------------------------------
-    // 5. Update merchant balance
-    // -------------------------------
-    await fetch(bankWebhookUrl("merchantWebHook"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({amount,
-             merchantId: merchant.userId,
-             customerId: Number(customerId),
-             token: ref }),
-            });
+    await postSignedBankWebhook("merchantWebHook", {
+      amount,
+      merchantId: merchant.userId,
+      customerId: Number(customerId),
+      token: paymentRef,
+    });
 
     // -------------------------------
     // 6. Return success

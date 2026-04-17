@@ -35,19 +35,19 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       const dispute = await tx.dispute.findUnique({
         where: { id: disputeId },
-        include: { merchantTransaction: true },
+        include: { MerchantTransaction: true },
       });
       if (!dispute) {
         throw new Error("NOT_FOUND");
       }
       if (
-        dispute.status === "RESOLVED_REFUNDED" ||
-        dispute.status === "RESOLVED_REJECTED"
+        dispute.status === "RESOLVED" ||
+        dispute.status === "REJECTED"
       ) {
         throw new Error("ALREADY_RESOLVED");
       }
 
-      const m = dispute.merchantTransaction;
+      const m = dispute.MerchantTransaction;
       if (!m.customerId) {
         throw new Error("NO_CUSTOMER");
       }
@@ -56,8 +56,8 @@ export async function POST(req: Request) {
         await tx.dispute.update({
           where: { id: disputeId },
           data: {
-            status: "RESOLVED_REJECTED",
-            resolutionNote: note ?? null,
+            status: "REJECTED",
+            adminNotes: note ?? null,
           },
         });
         await tx.auditLog.create({
@@ -105,8 +105,8 @@ export async function POST(req: Request) {
       await tx.dispute.update({
         where: { id: disputeId },
         data: {
-          status: "RESOLVED_REFUNDED",
-          resolutionNote: note ?? null,
+          status: "RESOLVED",
+          adminNotes: note ?? null,
         },
       });
 

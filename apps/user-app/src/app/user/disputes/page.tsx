@@ -9,7 +9,7 @@ type DisputeRow = {
   id: number;
   status: string;
   reason: string;
-  merchantTransaction: { id: number; amount: number; status: string };
+  MerchantTransaction: { id: number; amount: number; status: string };
 };
 
 export default function UserDisputesPage() {
@@ -76,7 +76,9 @@ export default function UserDisputesPage() {
           {rows.map((r) => (
             <li key={r.id} className="border rounded p-2">
               <div className="font-medium">#{r.id} — {r.status}</div>
-              <div>Txn #{r.merchantTransaction.id} — PKR {r.merchantTransaction.amount}</div>
+              <div>
+                Txn #{r.MerchantTransaction.id} — PKR {r.MerchantTransaction.amount}
+              </div>
               <div className="text-muted-foreground">{r.reason}</div>
             </li>
           ))}

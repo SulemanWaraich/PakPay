@@ -30,8 +30,8 @@ type TxSnapshot = {
     id: number;
     status: string;
     reason: string;
-    merchantTransaction: { id: number; amount: number };
-    openedBy: { email: string | null };
+    MerchantTransaction: { id: number; amount: number };
+    User: { email: string | null; id: number };
   }[];
 };
 
@@ -294,13 +294,16 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody>
                       {tx.disputes
-                        .filter((d) => d.status === "OPEN" || d.status === "UNDER_REVIEW")
+                        .filter(
+                          (d) =>
+                            d.status === "PENDING" || d.status === "UNDER_REVIEW",
+                        )
                         .map((d) => (
                           <tr key={d.id} className="border-t">
                             <td className="p-2">{d.id}</td>
-                            <td className="p-2">{d.merchantTransaction.id}</td>
-                            <td className="p-2">{d.merchantTransaction.amount}</td>
-                            <td className="p-2">{d.openedBy.email}</td>
+                            <td className="p-2">{d.MerchantTransaction.id}</td>
+                            <td className="p-2">{d.MerchantTransaction.amount}</td>
+                            <td className="p-2">{d.User.email}</td>
                             <td className="p-2 max-w-xs truncate">{d.reason}</td>
                             <td className="p-2 space-x-2">
                               <Button

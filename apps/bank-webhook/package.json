@@ -13,11 +13,13 @@
   "description": "",
   "dependencies": {
     "@repo/db": "*",
+    "@repo/webhook-signing": "*",
     "@types/express": "^5.0.3",
     "cors": "^2.8.5",
     "esbuild": "^0.25.9",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "winston": "^3.17.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0"
   },

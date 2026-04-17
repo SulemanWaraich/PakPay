@@ -2,10 +2,6 @@ FROM node:20
 
 WORKDIR /usr/src/app
 
-# Accept DATABASE_URL only (webhook doesn't need Prisma Accelerate)
-ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
-
 COPY package.json package-lock.json turbo.json ./
 COPY apps/bank-webhook ./apps/bank-webhook
 COPY packages ./packages

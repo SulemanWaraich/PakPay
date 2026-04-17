@@ -9,93 +9,83 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String?  @unique
-  name     String?
-  number   String   @unique
-  password String
-  role     UserRole @default(USER)
-
+  id                 Int                   @id @default(autoincrement())
+  email              String?               @unique
+  name               String?
+  number             String                @unique
+  password           String
+  resetTokenExpiry   DateTime?
+  resetTokenHash     String?
+  role               UserRole              @default(USER)
   Balance            Balance?
+  Dispute            Dispute[]
+  merchantProfile    MerchantProfile?
+  merchantPayments   MerchantTransaction[] @relation("CustomerTransactions")
   OffRampTransaction OffRampTransaction[]
   OnRampTransaction  OnRampTransaction[]
-
-  sentTransfers     p2pTransfer[] @relation("FromUserRelation")
-  receivedTransfers p2pTransfer[] @relation("ToUserRelation")
-
-  resetTokenHash   String?
-  resetTokenExpiry DateTime?
-
-  merchantProfile  MerchantProfile?
-  merchantPayments MerchantTransaction[] @relation("CustomerTransactions")
+  sentTransfers      p2pTransfer[]         @relation("FromUserRelation")
+  receivedTransfers  p2pTransfer[]         @relation("ToUserRelation")
 }
 
 model MerchantProfile {
-  id     Int @id @default(autoincrement())
-  userId Int @unique
-
-  ownerName    String?
-  businessName String?
-  category     MerchantCategory?
-  address      String?
-
-  logoUrl      String?
-  logoPublicId String?
-
-  kycStatus KycStatus @default(PENDING)
-  qrPayload String?   @unique
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  transactions MerchantTransaction[]
-  settlements  Settlement[]
-  auditLogs    AuditLog[]
+  id                      Int                   @id @default(autoincrement())
+  userId                  Int                   @unique
+  businessName            String?
+  kycStatus               KycStatus             @default(PENDING)
+  createdAt               DateTime              @default(now())
+  qrPayload               String?               @unique
+  ownerName               String?
+  category                MerchantCategory?
+  address                 String?
+  logoPublicId            String?
+  logoUrl                 String?
+  addressProofPublicId    String?
+  addressProofUrl         String?
+  businessLicensePublicId String?
+  businessLicenseUrl      String?
+  idDocumentPublicId      String?
+  idDocumentUrl           String?
+  cnicFrontUrl            String?
+  cnicBackUrl             String?
+  proofOfAddressUrl       String?
+  kycSubmittedAt          DateTime?
+  kycReviewNote           String?
+  auditLogs               AuditLog[]
+  user                    User                  @relation(fields: [userId], references: [id])
+  transactions            MerchantTransaction[]
+  settlements             Settlement[]
 }
 
 model MerchantTransaction {
-  id Int @id @default(autoincrement())
-
-  merchantId Int
-  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
-
-  customerId Int?
-  customer   User? @relation("CustomerTransactions", fields: [customerId], references: [id])
-
+  merchantId    Int
+  customerId    Int?
   amount        Int
   paymentMethod PaymentMethod
   status        TransactionStatus
-
-  // 🔁 Settlement linkage
-  settled      Boolean     @default(false)
-  settledAt    DateTime?
-  settlementId Int?
-  settlement   Settlement? @relation(fields: [settlementId], references: [id])
-
-  refunded   Boolean   @default(false)
-  refundedAt DateTime?
-
-  ref String? @unique
-
-  createdAt DateTime @default(now())
+  settled       Boolean           @default(false)
+  settledAt     DateTime?
+  refunded      Boolean           @default(false)
+  refundedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  ref           String?           @unique
+  id            Int               @id @default(autoincrement())
+  settlementId  Int?
+  Dispute       Dispute[]
+  customer      User?             @relation("CustomerTransactions", fields: [customerId], references: [id])
+  merchant      MerchantProfile   @relation(fields: [merchantId], references: [id])
+  settlement    Settlement?       @relation(fields: [settlementId], references: [id])
 }
 
 model Settlement {
-  id Int @id @default(autoincrement())
-
-  merchantId Int
-  merchant   MerchantProfile @relation(fields: [merchantId], references: [id])
-
-  amount Int
-  status SettlementStatus @default(PROCESSING)
-
+  id           Int                   @id @default(autoincrement())
+  merchantId   Int
+  amount       Int
+  status       SettlementStatus      @default(PROCESSING)
   scheduledFor DateTime
   processedAt  DateTime?
-
-  createdAt DateTime @default(now())
-
+  createdAt    DateTime              @default(now())
   transactions MerchantTransaction[]
+  merchant     MerchantProfile       @relation(fields: [merchantId], references: [id])
 }
 
 model SettlementLock {
@@ -105,14 +95,13 @@ model SettlementLock {
 }
 
 model AuditLog {
-  id          Int      @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   merchantId  Int
   action      String
   reason      String?
   performedBy Int
-  createdAt   DateTime @default(now())
-
-  merchant MerchantProfile @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  merchant    MerchantProfile @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 }
 
 model p2pTransfer {
@@ -121,9 +110,8 @@ model p2pTransfer {
   timestamp  DateTime
   fromUserId Int
   toUserId   Int
-
-  fromUser User @relation("FromUserRelation", fields: [fromUserId], references: [id])
-  toUser   User @relation("ToUserRelation", fields: [toUserId], references: [id])
+  fromUser   User     @relation("FromUserRelation", fields: [fromUserId], references: [id])
+  toUser     User     @relation("ToUserRelation", fields: [toUserId], references: [id])
 }
 
 model OnRampTransaction {
@@ -134,29 +122,45 @@ model OnRampTransaction {
   amount    Int
   startTime DateTime
   userId    Int
-
-  user User @relation(fields: [userId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
 }
 
 model OffRampTransaction {
-  id          Int           @id @default(autoincrement())
-  status      OffRampStatus
-  token       String        @unique
-  amount      Int
-  startTime   DateTime      @default(now())
-  userId      Int
-  bankAccount String
+  id                Int           @id @default(autoincrement())
+  status            OffRampStatus
+  token             String        @unique
+  amount            Int
+  startTime         DateTime      @default(now())
+  userId            Int
+  /// Legacy single-line bank label; prefer structured fields below.
+  bankAccount       String?
+  accountHolderName String?
+  bankName          String?
+  accountNumber     String?
+  branch            String?
+  user              User          @relation(fields: [userId], references: [id])
+}
 
-  user User @relation(fields: [userId], references: [id])
+model Dispute {
+  id                  Int                 @id @default(autoincrement())
+  transactionId       Int
+  userId              Int
+  reason              String
+  description         String?
+  status              DisputeStatus       @default(PENDING)
+  createdAt           DateTime            @default(now())
+  resolvedAt          DateTime?
+  adminNotes          String?
+  MerchantTransaction MerchantTransaction @relation(fields: [transactionId], references: [id])
+  User                User                @relation(fields: [userId], references: [id])
 }
 
 model Balance {
-  id     Int @id @default(autoincrement())
-  userId Int @unique
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
   amount Int
   locked Int
-
-  user User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
 }
 
 enum UserRole {
@@ -211,4 +215,11 @@ enum OffRampStatus {
   Success
   Failure
   Processing
+}
+
+enum DisputeStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
 }

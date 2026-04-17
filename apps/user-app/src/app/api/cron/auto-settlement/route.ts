@@ -1,8 +1,23 @@
 import { NextResponse } from "next/server"
 import prisma from "@repo/db"
-import { bankWebhookUrl } from "../../../lib/bankWebhookUrl"
+import { postSignedBankWebhook } from "../../../lib/signedBankWebhook"
 
-export async function POST() {
+export async function POST(req: Request) {
+  const cronSecret = process.env.CRON_SECRET
+  if (process.env.NODE_ENV === "production") {
+    if (!cronSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    const auth = req.headers.get("authorization")
+    if (auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+  } else if (cronSecret) {
+    const auth = req.headers.get("authorization")
+    if (auth && auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+  }
   const now = new Date()
   const T_PLUS_2 = new Date(now)
   T_PLUS_2.setDate(T_PLUS_2.getDate() - 2)
@@ -78,15 +93,19 @@ export async function POST() {
         }
       });
     
-      await fetch(bankWebhookUrl("merchantSettlementWebHook"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settlementId: settlement.id,
-          merchantId,
-          amount,
-        }),
-      });
+      const profile = await prisma.merchantProfile.findUnique({
+        where: { id: merchantId },
+        select: { userId: true },
+      })
+      if (!profile) {
+        continue
+      }
+
+      await postSignedBankWebhook("merchantSettlementWebHook", {
+        settlementId: settlement.id,
+        merchantId: profile.userId,
+        amount,
+      })
     }
 
     // 🔓 5️⃣ Release lock

@@ -1,60 +1,57 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import db from "@repo/db";
-import { LRUCache } from "lru-cache";
-import {handleApiError} from "../../lib/middlewares/errorHandler";
-
-const rateLimit = new LRUCache({
-  max: 100,              // Track up to 100 IPs
-  ttl: 10 * 60 * 1000,   // 10-minute window
-});
-
-
+import { handleApiError } from "../../lib/middlewares/errorHandler";
+import { rateLimitAllow } from "../../lib/rateLimitRedis";
+import { getClientIp } from "../../lib/clientIp";
+import { registerBodySchema } from "../../lib/validation/schemas";
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const current: any = rateLimit.get(ip) || 0;
-
-  if (current >= 5) {
+  const ip = getClientIp(req);
+  const ok = await rateLimitAllow(`rl:ip:register:${ip}`, 5, 10 * 60);
+  if (!ok) {
     return NextResponse.json(
-      { sucess: false, message: "Too many registration attempts. Try again later." },
-      { status: 429 }
+      { success: false, message: "Too many registration attempts. Try again later." },
+      { status: 429 },
     );
   }
 
-  rateLimit.set(ip, current + 1);
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, message: "Invalid request" },
+      { status: 400 },
+    );
+  }
+
+  const parsed = registerBodySchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, message: "Invalid input", details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const { email, number, password, name, role } = parsed.data;
 
   try {
-    const { email, number, password, name, role } = await req.json();
-
-    if (!email || !number || !password || !name || !role){
-      return NextResponse.json(
-        { sucess: false, message: "All fields are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!["USER", "MERCHANT"].includes(role)) {
-      return NextResponse.json(
-        { sucess: false, message: "Invalid role" },
-        { status: 400 }
-      );
-    }
-
     const existingUser = await db.user.findFirst({
       where: {
         OR: [{ email }, { number }],
       },
     });
 
-
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: "User with this email or number already exists." },
-        { status: 400 }
+        {
+          success: false,
+          message: "User with this email or number already exists.",
+        },
+        { status: 400 },
       );
     }
-    
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -69,14 +66,14 @@ export async function POST(req: Request) {
     });
 
     await db.balance.create({
-    data: {
-      userId: user.id,
-      amount: 0,
-      locked: 0,
-    },
-  });
+      data: {
+        userId: user.id,
+        amount: 0,
+        locked: 0,
+      },
+    });
 
-   if (role === "MERCHANT") {
+    if (role === "MERCHANT") {
       await db.merchantProfile.create({
         data: {
           userId: user.id,
@@ -84,13 +81,11 @@ export async function POST(req: Request) {
       });
     }
 
-
     return NextResponse.json(
       { success: true, message: "User registered successfully" },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (err: any) {
-    // console.error("Register error:", err);    
+  } catch (err: unknown) {
     return handleApiError(err);
   }
 }

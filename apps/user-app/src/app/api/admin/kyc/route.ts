@@ -2,15 +2,10 @@ import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { NextResponse } from "next/server";
-import { generateQr } from "../../../lib/qr";
-import crypto from "crypto";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  // i have to add production url in base_url variable
-  const BASE_URL  = process.env.NEXT_PUBLIC_BASE_URL;
-  // const ref = crypto.randomBytes(4).toString("hex");
-
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -27,7 +22,11 @@ export async function POST(req: Request) {
   await prisma.$transaction([
     prisma.merchantProfile.update({
       where: { id: merchantId },
-      data: { kycStatus },
+      data: {
+        kycStatus,
+        kycReviewNote:
+          action === "REJECT" ? (reason ?? null) : null,
+      },
     }),
     prisma.auditLog.create({
       data: {

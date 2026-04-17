@@ -22,11 +22,15 @@ const BusinessProfileSettings = () => {
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("RETAIL");
   const [address, setAddress] = useState("");
-  const [kycStatus, setKycStatus] = useState<"PENDING" | "VERIFIED" | "REJECTED">(
-    "PENDING"
-  );
+  const [kycStatus, setKycStatus] = useState<
+    "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED"
+  >("PENDING");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [cnicFront, setCnicFront] = useState<File | null>(null);
+  const [cnicBack, setCnicBack] = useState<File | null>(null);
+  const [proofAddr, setProofAddr] = useState<File | null>(null);
+  const [kycUploading, setKycUploading] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,6 +82,33 @@ const BusinessProfileSettings = () => {
  const handleLogoSelect = (file: File) => {
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleKycDocuments = async () => {
+    if (isLocked) return;
+    if (!cnicFront || !cnicBack) {
+      showToast("warning", "CNIC front and back images are required.");
+      return;
+    }
+    try {
+      setKycUploading(true);
+      const fd = new FormData();
+      fd.append("cnicFront", cnicFront);
+      fd.append("cnicBack", cnicBack);
+      if (proofAddr) fd.append("proofOfAddress", proofAddr);
+      const res = await fetch("/api/merchant/kyc-documents", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      if (!res.ok) throw new Error();
+      showToast("success", "KYC documents submitted for review.");
+      setKycStatus("SUBMITTED");
+    } catch {
+      showToast("error", "Failed to upload documents.");
+    } finally {
+      setKycUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -236,6 +267,53 @@ const BusinessProfileSettings = () => {
                 placeholder="Enter business address"
                 disabled={isLocked}
               />
+            </div>
+
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <h3 className="text-sm font-semibold">KYC documents</h3>
+              <p className="text-xs text-muted-foreground">
+                Upload clear photos of CNIC (front &amp; back). Proof of address is optional.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <label className="text-xs">
+                  CNIC front
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="block w-full text-xs mt-1"
+                    disabled={isLocked}
+                    onChange={(e) => setCnicFront(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label className="text-xs">
+                  CNIC back
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="block w-full text-xs mt-1"
+                    disabled={isLocked}
+                    onChange={(e) => setCnicBack(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label className="text-xs">
+                  Proof of address (optional)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="block w-full text-xs mt-1"
+                    disabled={isLocked}
+                    onChange={(e) => setProofAddr(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isLocked || kycUploading}
+                onClick={handleKycDocuments}
+              >
+                {kycUploading ? "Uploading…" : "Submit KYC documents"}
+              </Button>
             </div>
           </div>
 

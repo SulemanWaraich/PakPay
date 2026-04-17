@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
@@ -18,6 +19,7 @@
     "@repo/db": "*",
     "@repo/store": "*",
     "@repo/ui": "*",
+    "@repo/webhook-signing": "*",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
@@ -37,9 +39,12 @@
     "react-toastify": "^11.0.5",
     "recharts": "^3.2.0",
     "recoil": "^0.7.7",
+    "redis": "^5.10.0",
     "sharp": "^0.34.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
@@ -58,6 +63,7 @@
     "eslint": "^9.12.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@playwright/test": "^1.49.1"
   }
 }

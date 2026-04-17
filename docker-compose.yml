@@ -13,7 +13,17 @@ services:
     env_file:
       - .env
     environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PRISMA_ACCELERATE_URL: ${PRISMA_ACCELERATE_URL:-}
       BANK_WEBHOOK_URL: ${BANK_WEBHOOK_URL:-http://bank-webhook:3003}
+      BANK_WEBHOOK_SECRET: ${BANK_WEBHOOK_SECRET}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      ENFORCE_HTTPS: ${ENFORCE_HTTPS:-false}
+      ENABLE_HSTS: ${ENABLE_HSTS:-false}
     depends_on:
       - bank-webhook
     networks:
@@ -29,6 +39,8 @@ services:
     env_file:
       - .env
     environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BANK_WEBHOOK_SECRET: ${BANK_WEBHOOK_SECRET}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     networks:
       - pakpay-network

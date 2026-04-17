@@ -35,6 +35,7 @@ export default function Layout({
                 <SidebarItem href={"/merchant/transactions"} icon={<TransactionsIcon />} title="Invoices" />
                 <SidebarItem href={"/merchant/qr-code"} icon={<P2PTransferIcon />} title="QR Code" />
                 <SidebarItem href={"/merchant/business-profile"} icon={<TransferIcon />} title="Business Profile" />
+                <SidebarItem href={"/merchant/analytics"} icon={<TransactionsIcon />} title="Analytics" />
             </div>
         </div>
            

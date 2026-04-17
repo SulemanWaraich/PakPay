@@ -36,8 +36,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 40,
       include: {
-        merchantTransaction: { select: { amount: true, id: true } },
-        openedBy: { select: { email: true, id: true } },
+        MerchantTransaction: { select: { amount: true, id: true } },
+        User: { select: { email: true, id: true } },
       },
     }),
   ]);

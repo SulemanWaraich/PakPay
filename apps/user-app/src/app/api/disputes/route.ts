@@ -7,7 +7,6 @@ import { z } from "zod";
 const createSchema = z.object({
   merchantTransactionId: z.number().int().positive(),
   reason: z.string().min(5).max(2000),
-  evidenceUrl: z.string().url().max(2048).optional(),
 });
 
 export async function GET() {
@@ -17,10 +16,10 @@ export async function GET() {
   }
 
   const rows = await prisma.dispute.findMany({
-    where: { openedByUserId: Number(session.user.id) },
+    where: { userId: Number(session.user.id) },
     orderBy: { createdAt: "desc" },
     include: {
-      merchantTransaction: {
+      MerchantTransaction: {
         select: { id: true, amount: true, status: true, createdAt: true },
       },
     },
@@ -47,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { merchantTransactionId, reason, evidenceUrl } = parsed.data;
+  const { merchantTransactionId, reason } = parsed.data;
 
   const txn = await prisma.merchantTransaction.findFirst({
     where: {
@@ -68,11 +67,10 @@ export async function POST(req: Request) {
   try {
     const dispute = await prisma.dispute.create({
       data: {
-        merchantTransactionId,
-        openedByUserId: Number(session.user.id),
+        transactionId: merchantTransactionId,
+        userId: Number(session.user.id),
         reason,
-        evidenceUrl: evidenceUrl ?? null,
-        status: "OPEN",
+        status: "PENDING",
       },
     });
     return NextResponse.json(dispute, { status: 201 });

@@ -6,6 +6,11 @@ import { authOptions } from "../../lib/auth";
 export async function GET() {
   const userSession = await getServerSession(authOptions);
   
+
+if (!userSession || !userSession.user) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
   try {
     const offRamps = await prisma.offRampTransaction.findMany({
       select: { amount: true, startTime: true },

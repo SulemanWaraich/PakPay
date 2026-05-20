@@ -12,16 +12,16 @@ async function main() {
  console.log("🌱 Seeding database...");
 
   // ---------- Admin ----------
-  const adminPassword = await bcrypt.hash("admin123", 10);
+  const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD!, 10);
 
   await prisma.user.upsert({
-    where: { email: "admin@pakpay.com" },
+    where: { email: process.env.ADMIN_EMAIL! },
     update: {},
     create: {
-      email: "admin@pakpay.com",
+      email: process.env.ADMIN_EMAIL!,
       password: adminPassword,
       role: "ADMIN",
-      number: "03272339357",
+      number: process.env.ADMIN_NUMBER!,
     },
   });
 

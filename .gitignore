@@ -29,6 +29,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# local-only seed credentials (copy from seed.credentials.example.ts)
+packages/db/prisma/seed.credentials.local.ts
+
 # turbo
 .turbo
 

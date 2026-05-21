@@ -140,6 +140,18 @@ npm install
 npm run dev
 ```
 
+### Database seed (local dev users)
+
+Seed passwords live in a **gitignored** file so they are never pushed:
+
+```bash
+cp packages/db/prisma/seed.credentials.example.ts packages/db/prisma/seed.credentials.local.ts
+# Edit packages/db/prisma/seed.credentials.local.ts with your dev emails/passwords
+npm run db:seed
+```
+
+Sign in with the **email** and password from `seed.credentials.local.ts` (not phone number).
+
 ---
 
 ## 🔐 Environment Variables

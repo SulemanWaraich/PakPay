@@ -4,48 +4,46 @@ import {
   OffRampStatus,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
+import { SEED_CREDENTIALS } from "./seed.credentials.local.js";
 
 const prisma = new PrismaClient();
 
 async function main() {
- console.log("🌱 Seeding database...");
+  console.log("🌱 Seeding database...");
 
-  // ---------- Admin ----------
-  const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD!, 10);
+  const { admin, suleman: sulemanCreds, usama: usamaCreds } = SEED_CREDENTIALS;
 
+  const adminPassword = await bcrypt.hash(admin.password, 10);
   await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL! },
-    update: {},
-    create: {
-      email: process.env.ADMIN_EMAIL!,
+    where: { number: admin.number },
+    update: {
+      email: admin.email,
       password: adminPassword,
       role: "ADMIN",
-      number: process.env.ADMIN_NUMBER!,
+      name: admin.name,
+    },
+    create: {
+      email: admin.email,
+      password: adminPassword,
+      role: "ADMIN",
+      number: admin.number,
+      name: admin.name,
     },
   });
 
-  // const hashedPassword = await bcrypt.hash(adminPassword, 10);
-  
-  //  await prisma.user.create({
-  //   data: {
-  //     email: adminEmail,
-  //     password: hashedPassword,
-  //     role: "ADMIN",
-  //     number: "03272339357",
-  //   },
-  // });
-
-  const sulemanPassword = await bcrypt.hash("suleman123", 10);
-
+  const sulemanPassword = await bcrypt.hash(sulemanCreds.password, 10);
   const suleman = await prisma.user.upsert({
-    where: { number: "9999999999" },
-    update: {email: "suleman@pakpay.com",  password: sulemanPassword,},
-    create: {
-      email: "suleman@pakpay.com",
-      number: "9999999999",
+    where: { number: sulemanCreds.number },
+    update: {
+      email: sulemanCreds.email,
       password: sulemanPassword,
-      name: "Suleman",
+      name: sulemanCreds.name,
+    },
+    create: {
+      email: sulemanCreds.email,
+      number: sulemanCreds.number,
+      password: sulemanPassword,
+      name: sulemanCreds.name,
       OnRampTransaction: {
         create: [
           {
@@ -91,17 +89,19 @@ async function main() {
     },
   });
 
-  // ---------- Usama ----------
-  const usamaPassword = await bcrypt.hash("usama123", 10);
-
+  const usamaPassword = await bcrypt.hash(usamaCreds.password, 10);
   const usama = await prisma.user.upsert({
-    where: { number: "9999999998" },
-    update: {},
-    create: {
-      email: "usama@pakpay.com",
-      number: "9999999998",
+    where: { number: usamaCreds.number },
+    update: {
+      email: usamaCreds.email,
       password: usamaPassword,
-      name: "Usama",
+      name: usamaCreds.name,
+    },
+    create: {
+      email: usamaCreds.email,
+      number: usamaCreds.number,
+      password: usamaPassword,
+      name: usamaCreds.name,
       OnRampTransaction: {
         create: [
           {
@@ -140,7 +140,6 @@ async function main() {
     },
   });
 
-  // --- p2p Transfers between Suleman and Usama ---
   await prisma.p2pTransfer.createMany({
     data: [
       {
@@ -162,14 +161,18 @@ async function main() {
         toUserId: usama.id,
       },
     ],
+    skipDuplicates: true,
   });
-
-
 
   console.log({
     message: "✅ Database seeded successfully!",
-    suleman,
-    usama,
+    logins: {
+      admin: { email: admin.email, number: admin.number },
+      suleman: { email: sulemanCreds.email, number: sulemanCreds.number },
+      usama: { email: usamaCreds.email, number: usamaCreds.number },
+    },
+    sulemanId: suleman.id,
+    usamaId: usama.id,
   });
 }
 

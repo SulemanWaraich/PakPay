@@ -16,6 +16,7 @@ export default function SignInPage() {
 
   const reason = searchParams.get("reason");
   const merchantId = searchParams.get("merchantId");
+  const callbackUrl = searchParams.get("callbackUrl");
 
   const messages: Record<string, string> = {
     payment_auth: "Please log in to proceed with your payment",
@@ -39,6 +40,11 @@ export default function SignInPage() {
         return;
       }
 
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          showToast("success", "Login successful! Redirecting...");
+          router.push(callbackUrl);
+          return;
+        }
 
         if (session?.user?.role === "ADMIN") {
           showToast("success", "Welcome Admin! Redirecting...");

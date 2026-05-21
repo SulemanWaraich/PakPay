@@ -46,7 +46,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
           SOCKET_CORS_ORIGIN: ${{ secrets.SOCKET_CORS_ORIGIN }}
         run: |
-          docker compose -f docker-compose.yml build --push
+          docker compose -f docker-compose.yml build --no-cache --push
 
       - name: Verify Pushed Images
         run: |
@@ -83,6 +83,9 @@ jobs:
             ENABLE_HSTS=${{ secrets.ENABLE_HSTS }}
             EOF
 
-            docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml down
+            docker rmi suleman100devx/pakpay-user-app:latest || true
+            docker rmi suleman100devx/pakpay-bank-webhook:latest || true
+            docker rmi suleman100devx/pakpay-socket-gateway:latest || true
+            docker compose -f docker-compose.yml pull
             docker compose -f docker-compose.yml up -d --no-build --remove-orphans

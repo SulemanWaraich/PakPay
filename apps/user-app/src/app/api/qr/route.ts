@@ -7,6 +7,7 @@ import cloudinary from "../../lib/cloudinary";
 import { MerchantCategory } from "@prisma/client";
 import QRCode from "qrcode";
 import { isApprovedPaymentQrPayload } from "../../lib/kyc";
+import { resolveMerchantQrPayload } from "../../lib/merchantQr";
 import { AUTH_MESSAGES, jsonError } from "../../lib/apiErrors";
 
 export async function GET() {
@@ -38,11 +39,13 @@ export async function GET() {
       );
     }
 
-    const qr = isApprovedPaymentQrPayload(merchant.qrPayload)
-      ? await QRCode.toDataURL(merchant.qrPayload!)
+    const qrPayload = await resolveMerchantQrPayload(prisma, merchant);
+
+    const qr = isApprovedPaymentQrPayload(qrPayload)
+      ? await QRCode.toDataURL(qrPayload!)
       : null;
 
-    return NextResponse.json({ ...merchant, qr });
+    return NextResponse.json({ ...merchant, qrPayload, qr });
 
   } catch (error) {
     console.error("merchant fetch error:", error);

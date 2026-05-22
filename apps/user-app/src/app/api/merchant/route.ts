@@ -5,7 +5,10 @@ import { authOptions } from "../../lib/auth"
 import { NextResponse } from "next/server";
 import cloudinary from "../../lib/cloudinary";
 // import { MerchantCategory } from "@prisma/client";
-import  QRCode  from "qrcode";
+import QRCode from "qrcode";
+import { isApprovedPaymentQrPayload } from "../../lib/kyc";
+import { resolveMerchantQrPayload } from "../../lib/merchantQr";
+import { AUTH_MESSAGES, jsonError } from "../../lib/apiErrors";
 
 
 export async function GET() {
@@ -14,7 +17,7 @@ export async function GET() {
  
  
    if (!session?.user?.id ) {
-     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+     return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
    }
  
    const merchant = await prisma.merchantProfile.findUnique({
@@ -34,10 +37,7 @@ export async function GET() {
 
 
     if (!merchant) {
-     return NextResponse.json(
-       { error: "QR not available" },
-       { status: 403 }
-     );
+     return jsonError("Merchant profile not found.", 404);
    }
 
 
@@ -50,19 +50,17 @@ export async function GET() {
 // }
 
  
-const qr =
-  merchant.qrPayload && merchant.qrPayload.trim() !== ""
-    ? await QRCode.toDataURL(merchant.qrPayload)
-    : null
- 
-   return NextResponse.json({ ...merchant, qr });
+    const qrPayload = await resolveMerchantQrPayload(prisma, merchant);
+
+    const qr = isApprovedPaymentQrPayload(qrPayload)
+      ? await QRCode.toDataURL(qrPayload!)
+      : null;
+
+    return NextResponse.json({ ...merchant, qrPayload, qr });
  
  } catch (error) {
     console.error("merchant fetch error:", error);
-    return NextResponse.json(
-      { error: "Suleman" },
-      { status: 500 }
-    );
+    return jsonError("Could not load merchant profile. Please try again.", 500);
  }
   
 }

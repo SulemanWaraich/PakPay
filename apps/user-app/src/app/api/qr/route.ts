@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import cloudinary from "../../lib/cloudinary";
 import { MerchantCategory } from "@prisma/client";
 import QRCode from "qrcode";
+import { isApprovedPaymentQrPayload } from "../../lib/kyc";
 
 export async function GET() {
   try {
@@ -33,10 +34,9 @@ export async function GET() {
       return NextResponse.json({ error: "QR not available" }, { status: 403 });
     }
 
-    const qr =
-      merchant.qrPayload && merchant.qrPayload.trim() !== ""
-        ? await QRCode.toDataURL(merchant.qrPayload)
-        : null;
+    const qr = isApprovedPaymentQrPayload(merchant.qrPayload)
+      ? await QRCode.toDataURL(merchant.qrPayload!)
+      : null;
 
     return NextResponse.json({ ...merchant, qr });
 
@@ -122,28 +122,23 @@ export async function POST(req: Request) {
       logoPublicId = uploadResult.public_id;
     }
 
-    await prisma.merchantProfile.upsert({
+    const updated = await prisma.merchantProfile.update({
       where: { userId },
-      update: {
+      data: {
         businessName,
-        category: categoryUpper,   // ✅ normalized enum value
+        category: categoryUpper,
         address,
         logoUrl,
         logoPublicId,
-        kycStatus: merchant.kycStatus === "PENDING" ? "PENDING" : "VERIFIED",
+        // kycStatus is only changed by KYC document submit or admin approve/reject
       },
-      create: {
-        userId,
-        businessName,
-        category: categoryUpper,   // ✅ normalized enum value
-        address,
-        logoUrl,
-        logoPublicId,
-        qrPayload: `PAKPAY-${userId}-${Date.now()}`,
-      },
+      select: { kycStatus: true },
     });
 
-    return NextResponse.json({ message: "Business profile saved. Verification pending." });
+    return NextResponse.json({
+      message: "Business profile saved. Verification pending.",
+      kycStatus: updated.kycStatus,
+    });
 
   } catch (err) {
     console.error("Merchant profile error:", err);

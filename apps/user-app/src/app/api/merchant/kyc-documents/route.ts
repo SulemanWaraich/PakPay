@@ -15,6 +15,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const merchant = await prisma.merchantProfile.findUnique({
+    where: { userId: Number(session.user.id) },
+    select: { kycStatus: true },
+  });
+
+  if (!merchant) {
+    return NextResponse.json({ error: "Merchant profile not found" }, { status: 404 });
+  }
+
+  if (merchant.kycStatus === "VERIFIED") {
+    return NextResponse.json(
+      { error: "Profile already verified" },
+      { status: 403 },
+    );
+  }
+
   const form = await req.formData();
   const front = form.get("cnicFront");
   const back = form.get("cnicBack");

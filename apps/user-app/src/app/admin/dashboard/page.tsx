@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { CheckCircle2, XCircle, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { isApprovedPaymentQrPayload, needsAdminKycReview } from "../../lib/kyc";
 
 interface Merchant {
   id: number;
@@ -89,6 +90,11 @@ export default function AdminDashboard() {
     };
   }, [tab]);
 
+  const refreshMerchants = async () => {
+    const res = await fetch("/api/admin/merchants");
+    if (res.ok) setMerchants(await res.json());
+  };
+
   const handleKycAction = async (merchantId: number, action: "APPROVE" | "REJECT") => {
     setProcessingId(merchantId);
     try {
@@ -97,16 +103,13 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ merchantId, action }),
       });
-      if (!res.ok) throw new Error();
-      setMerchants((prev) =>
-        prev.map((m) =>
-          m.id === merchantId
-            ? { ...m, kycStatus: action === "APPROVE" ? "VERIFIED" : "REJECTED" }
-            : m,
-        ),
-      );
-    } catch {
-      alert("Failed to update KYC status");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "KYC update failed");
+      }
+      await refreshMerchants();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to update KYC status");
     } finally {
       setProcessingId(null);
     }
@@ -194,18 +197,27 @@ export default function AdminDashboard() {
                     <td className="px-4 py-2">{m.category}</td>
                     <td className="px-4 py-2">{m.address}</td>
                     <td className="px-4 py-2">
-                      {m.kycStatus === "VERIFIED" && (
+                      {m.kycStatus === "VERIFIED" &&
+                        isApprovedPaymentQrPayload(m.qrPayload) && (
                         <CheckCircle2 className="inline w-5 h-5 text-green-500" />
                       )}
                       {m.kycStatus === "REJECTED" && (
                         <XCircle className="inline w-5 h-5 text-red-500" />
                       )}
-                      {(m.kycStatus === "PENDING" || m.kycStatus === "SUBMITTED") && (
-                        <span className="text-yellow-600">{m.kycStatus}</span>
+                      {needsAdminKycReview(m.kycStatus, m.qrPayload) && (
+                        <span className="text-yellow-600">
+                          {m.kycStatus === "VERIFIED" ? "NEEDS REVIEW" : m.kycStatus}
+                        </span>
+                      )}
+                      {m.kycStatus === "VERIFIED" &&
+                        !isApprovedPaymentQrPayload(m.qrPayload) && (
+                        <span className="block text-xs text-amber-600">
+                          Approved without QR — approve again
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-2 space-x-2">
-                      {(m.kycStatus === "PENDING" || m.kycStatus === "SUBMITTED") && (
+                      {needsAdminKycReview(m.kycStatus, m.qrPayload) && (
                         <>
                           <Button
                             size="sm"
@@ -226,7 +238,9 @@ export default function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {m.kycStatus === "VERIFIED" && m.qrImage && (
+                      {m.kycStatus === "VERIFIED" &&
+                        isApprovedPaymentQrPayload(m.qrPayload) &&
+                        m.qrImage && (
                         <Button
                           size="sm"
                           variant="outline"

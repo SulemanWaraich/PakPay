@@ -6,12 +6,12 @@ import { nanoid } from "nanoid";
 import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { createOnRampSchema } from "../../lib/validation/schemas";
-import { jsonError } from "../../lib/apiErrors";
+import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return jsonError("User not logged in", 401);
+    return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
   }
 
   const uid = String(session.user.id);
@@ -26,15 +26,12 @@ export async function POST(req: Request) {
   try {
     json = await req.json();
   } catch {
-    return jsonError("Invalid JSON", 400);
+    return jsonError("Invalid request. Please try again.", 400);
   }
 
   const parsed = createOnRampSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, error: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
   }
 
   const { amount, bank } = parsed.data;

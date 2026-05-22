@@ -5,52 +5,41 @@ import { handleApiError } from "../../lib/middlewares/errorHandler";
 import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { registerBodySchema } from "../../lib/validation/schemas";
+import { jsonError, REGISTER_MESSAGES, zodErrorMessage } from "../../lib/apiErrors";
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
   const ok = await rateLimitAllow(`rl:ip:register:${ip}`, 5, 10 * 60);
   if (!ok) {
-    return NextResponse.json(
-      { success: false, message: "Too many registration attempts. Try again later." },
-      { status: 429 },
-    );
+    return jsonError(REGISTER_MESSAGES.RATE_LIMIT, 429);
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json(
-      { success: false, message: "Invalid request" },
-      { status: 400 },
-    );
+    return jsonError("Invalid request body. Please try again.", 400);
   }
 
   const parsed = registerBodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, message: "Invalid input", details: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
   }
 
   const { email, number, password, name, role } = parsed.data;
+  const normalizedEmail = email.trim().toLowerCase();
 
   try {
-    const existingUser = await db.user.findFirst({
-      where: {
-        OR: [{ email }, { number }],
-      },
-    });
+    const [byEmail, byNumber] = await Promise.all([
+      db.user.findFirst({ where: { email: normalizedEmail } }),
+      db.user.findFirst({ where: { number } }),
+    ]);
 
-    if (existingUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "User with this email or number already exists.",
-        },
-        { status: 400 },
-      );
+    if (byEmail) {
+      return jsonError(REGISTER_MESSAGES.DUPLICATE_EMAIL, 400);
+    }
+    if (byNumber) {
+      return jsonError(REGISTER_MESSAGES.DUPLICATE_PHONE, 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -58,7 +47,7 @@ export async function POST(req: Request) {
     const user = await db.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         number,
         password: hashedPassword,
         role,
@@ -82,7 +71,10 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { success: true, message: "User registered successfully" },
+      {
+        success: true,
+        message: "Your account was created successfully.",
+      },
       { status: 201 },
     );
   } catch (err: unknown) {

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { apiErrorMessage } from "../lib/apiErrors"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ export default function ContactPage() {
     message: "",
   })
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -22,24 +24,32 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const res = await fetch("/api/contact", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(formData),
-  })
+    setError(null)
 
-  if (res.ok) {
-    setSubmitted(true)
-    setFormData({ name: "", email: "", message: "" })
-    setTimeout(() => setSubmitted(false), 5000)
-  } else {
-    alert("Failed to send message. Please try again.")
-  }
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      setError("Please fill in your name, email, and message.")
+      return
+    }
 
-    setSubmitted(true)
-    setFormData({ name: "", email: "", message: "" })
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(apiErrorMessage(data, "Could not send your message. Try again."))
+        return
+      }
+
+      setSubmitted(true)
+      setFormData({ name: "", email: "", message: "" })
+      setTimeout(() => setSubmitted(false), 5000)
+    } catch {
+      setError("Network error. Check your connection and try again.")
+    }
   }
 
   return (
@@ -121,7 +131,18 @@ export default function ContactPage() {
             />
           </div>
 
-          {/* Submit Button */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
           <button
             type="submit"
             className="w-full py-2 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200"
@@ -129,7 +150,6 @@ export default function ContactPage() {
             Send Message
           </button>
 
-          {/* Success Message */}
           {submitted && (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
               <p className="text-sm text-emerald-800">Thank you for your message! We'll get back to you soon.</p>

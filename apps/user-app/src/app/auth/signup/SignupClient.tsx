@@ -3,17 +3,19 @@
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { showToast } from "../../lib/toastMessage";
+import { apiErrorMessage } from "../../lib/apiErrors";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [number, setNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // ✅ NEW FIELD
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,56 +23,85 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
 
     if (!role) {
-      router.push("/auth/role-select");
+      showToast("warning", "Choose whether you are signing up as a User or Merchant.");
+      router.push("/api/selector");
       return;
     }
 
-    // ⚠️ Check for empty fields
-    if (!name || !email || !number || !password || !confirmPassword) {
-      showToast("warn", "Please fill in all fields.");
+    if (!name.trim()) {
+      showToast("error", "Enter your full name.");
       return;
     }
-
-    // ⚠️ Check password match
+    if (!email.trim()) {
+      showToast("error", "Enter your email address.");
+      return;
+    }
+    if (!number.trim()) {
+      showToast("error", "Enter your phone number (10–15 digits).");
+      return;
+    }
+    if (!password) {
+      showToast("error", "Choose a password (at least 8 characters).");
+      return;
+    }
+    if (password.length < 8) {
+      showToast("error", "Password must be at least 8 characters.");
+      return;
+    }
     if (password !== confirmPassword) {
-      showToast("error", "Passwords do not match.");
+      showToast("error", "Passwords do not match. Re-enter confirm password.");
       return;
     }
 
+    setSubmitting(true);
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, number, password, name, role }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          number: number.trim(),
+          password,
+          name: name.trim(),
+          role,
+        }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showToast("error", data.error || "Signup failed. Please try again.");
+        showToast(
+          "error",
+          apiErrorMessage(data, "Registration failed. Please try again."),
+        );
         return;
       }
 
-      showToast("success", "Account created successfully! Logging you in...");
+      showToast("success", "Account created. Signing you in…");
 
-      // Auto-login
       const loginRes = await signIn("credentials", {
         redirect: false,
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
       if (loginRes?.ok) {
-        showToast("success", "Welcome to PakPay! Redirecting...");
+        showToast("success", "Welcome to PakPay.");
         router.push("/api/post-login");
       } else {
-        showToast("info", "Account created. Please log in.");
+        showToast(
+          "info",
+          "Account created. Please sign in with your email and password.",
+        );
         router.push("/auth/signin");
       }
-    } catch (error) {
-      showToast("error", "Something went wrong. Please try again later.");
+    } catch {
+      showToast("error", "Network error. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -89,55 +120,60 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="text"
-              placeholder="Enter Name"
+              placeholder="Full name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+              autoComplete="name"
               required
             />
 
             <Input
               type="email"
-              placeholder="Enter email"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+              autoComplete="email"
               required
             />
 
             <Input
               type="tel"
-              placeholder="Enter phone number"
+              placeholder="Phone number (e.g. 03001234567)"
               value={number}
               onChange={(e) => setNumber(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+              autoComplete="tel"
               required
             />
 
             <Input
               type="password"
-              placeholder="Enter password"
+              placeholder="Password (min. 8 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+              autoComplete="new-password"
               required
             />
 
-            {/* ✅ NEW CONFIRM PASSWORD INPUT */}
             <Input
               type="password"
               placeholder="Confirm password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+              autoComplete="new-password"
               required
             />
 
             <Button
               type="submit"
+              disabled={submitting}
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full font-semibold mt-6"
             >
-              Create Account
+              {submitting ? "Creating account…" : "Create Account"}
             </Button>
           </form>
 

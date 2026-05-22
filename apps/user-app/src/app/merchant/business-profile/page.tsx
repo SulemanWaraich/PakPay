@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Image, CheckCircle2 } from "lucide-react";
 import { showToast } from "../../lib/toastMessage";
+import { apiErrorMessage } from "../../lib/apiErrors";
 
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -59,8 +60,10 @@ const BusinessProfileSettings = () => {
  
           
        if (!res.ok) {
-          const data = await res.text();
-          throw new Error(data || "Failed to load business profile");
+          const data = await res.json().catch(() => ({}));
+          throw new Error(
+            apiErrorMessage(data, "Could not load your business profile."),
+          );
         }
 
         const data = await res.json();
@@ -70,7 +73,7 @@ const BusinessProfileSettings = () => {
         setKycStatus(data.kycStatus);
         setLogoPreview(data.logoUrl || null);
       } catch {
-        setError("Failed to load business profile");
+        setError("Could not load your business profile. Refresh the page.");
       } finally {
         setLoading(false);
       }
@@ -101,11 +104,18 @@ const BusinessProfileSettings = () => {
         credentials: "include",
         body: fd,
       });
-      if (!res.ok) throw new Error();
-      showToast("success", "KYC documents submitted for review.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(
+          "error",
+          apiErrorMessage(data, "Could not upload KYC documents."),
+        );
+        return;
+      }
+      showToast("success", "KYC documents submitted. An admin will review them.");
       setKycStatus("SUBMITTED");
     } catch {
-      showToast("error", "Failed to upload documents.");
+      showToast("error", "Network error while uploading. Try again.");
     } finally {
       setKycUploading(false);
     }
@@ -113,7 +123,10 @@ const BusinessProfileSettings = () => {
 
   const handleSave = async () => {
      if (isLocked) {
-      return showToast("success", "✅ Profile locked after verification. Changes are not allowed.");
+      return showToast(
+        "warning",
+        "Your profile is locked after verification. Changes are not allowed.",
+      );
     }
 
     if (!businessName || !address) {
@@ -139,13 +152,21 @@ const BusinessProfileSettings = () => {
         body: formData,
       });
 
-      if (!res.ok) throw new Error();
-
-      const data = await res.json();
-      showToast("success", "Business profile saved. Verification pending.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(
+          "error",
+          apiErrorMessage(data, "Could not save your business profile."),
+        );
+        return;
+      }
+      showToast(
+        "success",
+        apiErrorMessage(data, "Business profile saved."),
+      );
       if (data.kycStatus) setKycStatus(data.kycStatus);
     } catch {
-      setError("Failed to save business profile");
+      setError("Network error while saving. Check your connection and try again.");
     } finally {
       setSaving(false);
     }

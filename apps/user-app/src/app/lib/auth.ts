@@ -1,11 +1,5 @@
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import db from "@repo/db";
-import {
-  clearLoginFailures,
-  isLoginLocked,
-  recordLoginFailure,
-} from "./loginLockout";
+import { validateCredentials } from "./credentialsAuth";
 import { authSecret } from "./authSecret";
 
 const useSecureCookies =
@@ -60,42 +54,14 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials: { email?: string; password?: string } | undefined) {
-        const email = credentials?.email?.trim().toLowerCase();
-        const password = credentials?.password;
-        if (!email || !password) {
-          return null;
-        }
-
-        if (await isLoginLocked(email)) {
-          return null;
-        }
-
-        const existingUser = await db.user.findFirst({
-          where: { email },
-        });
-
-        if (!existingUser) {
-          await new Promise((r) => setTimeout(r, 200));
-          return null;
-        }
-
-        const passwordValidation = await bcrypt.compare(
-          password,
-          existingUser.password,
+        const result = await validateCredentials(
+          credentials?.email ?? "",
+          credentials?.password ?? "",
         );
-        if (!passwordValidation) {
-          await recordLoginFailure(email);
-          return null;
+        if (!result.ok) {
+          throw new Error(result.message);
         }
-
-        await clearLoginFailures(email);
-
-        return {
-          id: existingUser.id.toString(),
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role,
-        };
+        return result.user;
       },
     }),
   ],

@@ -1,47 +1,70 @@
 import { NextResponse } from "next/server";
 
-export function handleApiError(error: any) {
+export function handleApiError(error: unknown) {
   console.error("API Error:", error);
 
-  // Prisma unique constraint
-  if (error.code === "P2002") {
+  const err = error as { code?: string; name?: string; meta?: { target?: string[] } };
+
+  if (err.code === "P2002") {
+    const target = err.meta?.target;
+    if (Array.isArray(target)) {
+      if (target.includes("email")) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "This email is already in use. Sign in or use a different email.",
+          },
+          { status: 400 },
+        );
+      }
+      if (target.includes("number")) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "This phone number is already in use. Sign in or use a different number.",
+          },
+          { status: 400 },
+        );
+      }
+    }
     return NextResponse.json(
       {
         success: false,
-        message: "This value already exists. Please use a different one.",
+        message:
+          "This information is already registered. Please use different details.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Mongo duplicate key error
-  if (error.code === 11000) {
+  if (String(err.code) === "11000") {
     return NextResponse.json(
       {
         success: false,
-        message: "An account with this information already exists.",
+        message: "An account with this email or phone number already exists.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Sequelize unique constraint
-  if (error.name === "SequelizeUniqueConstraintError") {
+  if (err.name === "SequelizeUniqueConstraintError") {
     return NextResponse.json(
       {
         success: false,
-        message: "This value must be unique. Try a different one.",
+        message: "This value is already taken. Try different details.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Default fallback
   return NextResponse.json(
     {
       success: false,
-      message: "Something went wrong. Please try again later.",
+      message:
+        "We could not complete your request. Please try again in a moment.",
     },
-    { status: 500 }
+    { status: 500 },
   );
 }

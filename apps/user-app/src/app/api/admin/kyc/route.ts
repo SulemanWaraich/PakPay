@@ -3,10 +3,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { NextResponse } from "next/server";
 import { isApprovedPaymentQrPayload } from "../../../lib/kyc";
+import { buildMerchantPayUrl, getPublicBaseUrl } from "../../../lib/publicBaseUrl";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  let baseUrl: string;
+  try {
+    baseUrl = getPublicBaseUrl();
+  } catch {
+    baseUrl = "";
+  }
 
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Merchant already approved" });
     }
 
-    const payload = `${baseUrl}/pay?v=1&type=merchant&mid=${merchantId}`;
+    const payload = buildMerchantPayUrl(merchantId);
 
     await prisma.$transaction([
       prisma.merchantProfile.update({

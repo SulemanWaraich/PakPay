@@ -1,14 +1,16 @@
 import prisma from "@repo/db";
 import { NextResponse } from "next/server";
-export const dynamic = "force-dynamic";
+import { isApprovedPaymentQrPayload } from "../../../lib/kyc";
+import { jsonError } from "../../../lib/apiErrors";
 
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const mid = searchParams.get("mid");
 
-  if (!mid) {
-    return NextResponse.json({ error: "Missing merchant id" }, { status: 400 });
+  if (!mid || Number.isNaN(Number(mid))) {
+    return jsonError("Invalid payment link: merchant ID is missing.", 400);
   }
 
   const merchant = await prisma.merchantProfile.findUnique({
@@ -18,12 +20,25 @@ export async function GET(req: Request) {
       businessName: true,
       logoUrl: true,
       kycStatus: true,
+      qrPayload: true,
     },
   });
 
-  if (!merchant || merchant.kycStatus !== "VERIFIED") {
-    return NextResponse.json({ error: "Merchant unavailable" }, { status: 404 });
+  if (
+    !merchant ||
+    merchant.kycStatus !== "VERIFIED" ||
+    !isApprovedPaymentQrPayload(merchant.qrPayload)
+  ) {
+    return jsonError(
+      "This merchant is not accepting payments yet (pending verification).",
+      404,
+    );
   }
 
-  return NextResponse.json(merchant);
+  return NextResponse.json({
+    id: merchant.id,
+    businessName: merchant.businessName,
+    logoUrl: merchant.logoUrl,
+    kycStatus: merchant.kycStatus,
+  });
 }

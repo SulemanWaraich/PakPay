@@ -1,25 +1,41 @@
-import { NextResponse } from "next/server"
-import bcrypt from "bcryptjs"
-import crypto from "crypto"
-import  prisma  from "@repo/db"
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import prisma from "@repo/db";
+import { resetPasswordBodySchema } from "../../../lib/validation/schemas";
+import { jsonError, zodErrorMessage } from "../../../lib/apiErrors";
 
 export async function POST(req: Request) {
-  const { token, password } = await req.json()
+  let json: unknown;
+  try {
+    json = await req.json();
+  } catch {
+    return jsonError("Invalid request. Please try again from the reset link.", 400);
+  }
 
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex")
+  const parsed = resetPasswordBodySchema.safeParse(json);
+  if (!parsed.success) {
+    return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
+  }
+
+  const { token, password } = parsed.data;
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await prisma.user.findFirst({
     where: {
       resetTokenHash: tokenHash,
       resetTokenExpiry: { gt: new Date() },
     },
-  })
+  });
 
   if (!user) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 })
+    return jsonError(
+      "This reset link is invalid or has expired. Request a new link from Forgot Password.",
+      400,
+    );
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10)
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   await prisma.user.update({
     where: { id: user.id },
@@ -28,7 +44,10 @@ export async function POST(req: Request) {
       resetTokenHash: null,
       resetTokenExpiry: null,
     },
-  })
+  });
 
-  return NextResponse.json({ message: "Password reset successful" })
+  return NextResponse.json({
+    success: true,
+    message: "Your password was updated. You can sign in now.",
+  });
 }

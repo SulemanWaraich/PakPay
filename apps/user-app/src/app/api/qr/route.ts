@@ -7,13 +7,14 @@ import cloudinary from "../../lib/cloudinary";
 import { MerchantCategory } from "@prisma/client";
 import QRCode from "qrcode";
 import { isApprovedPaymentQrPayload } from "../../lib/kyc";
+import { AUTH_MESSAGES, jsonError } from "../../lib/apiErrors";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
     }
 
     const merchant = await prisma.merchantProfile.findUnique({
@@ -31,7 +32,10 @@ export async function GET() {
     });
 
     if (!merchant || !merchant.businessName || !merchant.category || !merchant.address) {
-      return NextResponse.json({ error: "QR not available" }, { status: 403 });
+      return jsonError(
+        "Complete your business name, category, and address before using QR.",
+        403,
+      );
     }
 
     const qr = isApprovedPaymentQrPayload(merchant.qrPayload)
@@ -42,7 +46,7 @@ export async function GET() {
 
   } catch (error) {
     console.error("merchant fetch error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonError("Could not load QR details. Please try again.", 500);
   }
 }
 
@@ -51,11 +55,11 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
     }
 
     if (session.user.role && session.user.role !== "MERCHANT") {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      return jsonError("Only merchant accounts can update a business profile.", 403);
     }
 
     const userId = Number(session.user.id);
@@ -68,27 +72,30 @@ export async function POST(req: Request) {
     const logoFile = formData.get("logo") as File | null;
 
     if (!businessName || !categoryRaw || !address) {
-      return NextResponse.json({ message: "All fields are required" }, { status: 400 });
+      return jsonError("Business name, category, and address are all required.", 400);
     }
 
     // ✅ Normalize category to uppercase and validate against enum
     const categoryUpper = categoryRaw.toUpperCase() as MerchantCategory;
     const validCategories = Object.values(MerchantCategory);
     if (!validCategories.includes(categoryUpper)) {
-      return NextResponse.json(
-        { message: `Invalid category. Must be one of: ${validCategories.join(", ")}` },
-        { status: 400 }
+      return jsonError(
+        `Invalid category. Choose one of: ${validCategories.join(", ")}.`,
+        400,
       );
     }
 
     const merchant = await prisma.merchantProfile.findUnique({ where: { userId } });
 
     if (!merchant) {
-      return NextResponse.json({ message: "Merchant profile not found" }, { status: 404 });
+      return jsonError("Merchant profile not found. Contact support.", 404);
     }
 
     if (merchant.kycStatus === "VERIFIED") {
-      return NextResponse.json({ message: "Profile locked after verification" }, { status: 403 });
+      return jsonError(
+        "Your profile is locked after verification. Contact support to request changes.",
+        403,
+      );
     }
 
     let logoUrl = merchant.logoUrl;
@@ -142,6 +149,6 @@ export async function POST(req: Request) {
 
   } catch (err) {
     console.error("Merchant profile error:", err);
-    return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
+    return jsonError("Could not save your business profile. Please try again.", 500);
   }
 }

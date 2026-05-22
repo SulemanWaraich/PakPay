@@ -3,6 +3,7 @@ import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import cloudinary from "../../../lib/cloudinary";
+import { AUTH_MESSAGES, jsonError } from "../../../lib/apiErrors";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || session.user.role !== "MERCHANT") {
     console.log("[kyc] 1. session:", session?.user?.id, session?.user?.role);
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonError(AUTH_MESSAGES.FORBIDDEN, 403);
   }
 
   const merchant = await prisma.merchantProfile.findUnique({
@@ -21,13 +22,13 @@ export async function POST(req: Request) {
   });
 
   if (!merchant) {
-    return NextResponse.json({ error: "Merchant profile not found" }, { status: 404 });
+    return jsonError("Merchant profile not found. Complete registration first.", 404);
   }
 
   if (merchant.kycStatus === "VERIFIED") {
-    return NextResponse.json(
-      { error: "Profile already verified" },
-      { status: 403 },
+    return jsonError(
+      "Your profile is already verified. Documents cannot be changed.",
+      403,
     );
   }
 
@@ -37,10 +38,7 @@ export async function POST(req: Request) {
   const proof = form.get("proofOfAddress");
 
   if (!(front instanceof File) || !(back instanceof File)) {
-    return NextResponse.json(
-      { error: "cnicFront and cnicBack files required" },
-      { status: 400 },
-    );
+    return jsonError("Upload both CNIC front and CNIC back images.", 400);
   }
 
   const upload = async (file: File, tag: string) => {
@@ -88,9 +86,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[kyc-documents] ERROR:", e);
-    return NextResponse.json(
-      { error: String(e) },  // expose full error in dev
-      { status: 500 }
+    return jsonError(
+      "Could not upload KYC documents. Check file size/format and try again.",
+      500,
     );
   }
 }

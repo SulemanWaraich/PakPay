@@ -7,6 +7,7 @@ import { postSignedBankWebhook } from "../../lib/signedBankWebhook";
 import { payBodySchema } from "../../lib/validation/schemas";
 import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
+import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return Response.json({ error: "User not logged in" }, { status: 401 });
+      return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
     }
 
     const uid = String(session.user.id);
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
       !(await rateLimitAllow(`rl:user:pay:${uid}`, 40, 60)) ||
       !(await rateLimitAllow(`rl:ip:pay:${ip}`, 120, 60))
     ) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+      return jsonError("Too many payment attempts. Wait a minute and try again.", 429);
     }
 
     const customerId = session.user.id;
@@ -32,15 +33,12 @@ export async function POST(req: Request) {
     try {
       json = await req.json();
     } catch {
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      return jsonError("Invalid payment request.", 400);
     }
 
     const parsed = payBodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid payment request", details: parsed.error.flatten() },
-        { status: 400 },
-      );
+      return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
     }
 
     const { merchantId: midRaw, amount, ref, paymentMethod } = parsed.data;
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
     });
 
     if (!merchant) {
-      return NextResponse.json({ error: "Merchant not found" }, { status: 404 });
+      return jsonError("This merchant is not available for payments.", 404);
     }
 
     const merchantUserId = merchant.userId; // THE REAL MERCHANT OWNER
@@ -67,16 +65,13 @@ export async function POST(req: Request) {
     });
 
     if (!customerBalance) {
-      return NextResponse.json(
-        { error: "Wallet not found" },
-        { status: 404 }
-      );
+      return jsonError("Your wallet was not found. Contact support.", 404);
     }
 
     if (customerBalance.amount < amount) {
-      return NextResponse.json(
-        { error: "Insufficient balance" },
-        { status: 400 }
+      return jsonError(
+        "Insufficient wallet balance. Add money to your wallet or use bank transfer.",
+        400,
       );
     }
     
@@ -140,6 +135,6 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Payment error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return jsonError("Payment could not be processed. Please try again.", 500);
   }
 }

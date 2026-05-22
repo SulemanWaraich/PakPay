@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { nanoid } from "nanoid";
 import { BankPaymentModal } from "../../components/BankPaymentModal";  // same modal as AddMoney
 import {  type BankKey, bankThemes } from "../../components/bank-themes";
+import { apiErrorMessage } from "../lib/apiErrors";
+import { showToast } from "../lib/toastMessage";
 
 type Merchant = {
   id: string;
@@ -37,7 +39,9 @@ export default function PayPage() {
   if (!type || !merchantId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">Invalid QR Code</p>
+        <p className="text-red-500 text-center px-4">
+          Invalid payment link. Ask the merchant for a valid QR code.
+        </p>
       </div>
     );
   }
@@ -47,12 +51,16 @@ export default function PayPage() {
     const fetchMerchant = async () => {
       try {
         const res = await fetch(`/api/pay/merchant?mid=${merchantId}`);
-        if (!res.ok) throw new Error("Merchant not found");
-
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(
+            apiErrorMessage(data, "This merchant is not available for payments."),
+          );
+          return;
+        }
         setMerchant(data);
-      } catch (err) {
-        setError("Unable to load merchant");
+      } catch {
+        setError("Could not load merchant details. Try scanning the QR again.");
       } finally {
         setLoading(false);
       }
@@ -74,8 +82,9 @@ export default function PayPage() {
       }),
     });
 
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError("Wallet payment failed");
+      setError(apiErrorMessage(data, "Payment failed. Please try again."));
       return;
     }
 
@@ -84,7 +93,7 @@ export default function PayPage() {
 
   const handlePay = () => {
     if (!amount || Number(amount) <= 0) {
-      alert("Enter valid amount");
+      showToast("warning", "Enter an amount greater than zero (PKR).");
       return;
     }
 

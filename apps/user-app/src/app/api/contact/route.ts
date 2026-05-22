@@ -4,29 +4,24 @@ import { contactBodySchema } from "../../lib/validation/schemas";
 import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { logger } from "../../lib/logger";
+import { jsonError, zodErrorMessage } from "../../lib/apiErrors";
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
   if (!(await rateLimitAllow(`rl:ip:contact:${ip}`, 8, 60 * 10))) {
-    return NextResponse.json(
-      { success: false, message: "Too many messages. Try again later." },
-      { status: 429 },
-    );
+    return jsonError("Too many messages sent. Please try again in a few minutes.", 429);
   }
 
   let json: unknown;
   try {
     json = await req.json();
   } catch {
-    return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
+    return jsonError("Invalid request. Please fill the form and try again.", 400);
   }
 
   const parsed = contactBodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json(
-      { success: false, message: "Invalid input", details: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
   }
 
   const { name, email, message } = parsed.data;
@@ -55,9 +50,15 @@ export async function POST(req: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: "Your message was sent. We will reply by email soon.",
+    });
   } catch (error) {
     logger.error("contact mail failed", { error: String(error) });
-    return NextResponse.json({ success: false }, { status: 500 });
+    return jsonError(
+      "We could not send your message right now. Try again later.",
+      500,
+    );
   }
 }

@@ -141,8 +141,9 @@ const BusinessProfileSettings = () => {
 
       if (!res.ok) throw new Error();
 
+      const data = await res.json();
       showToast("success", "Business profile saved. Verification pending.");
-      setKycStatus("PENDING");
+      if (data.kycStatus) setKycStatus(data.kycStatus);
     } catch {
       setError("Failed to save business profile");
     } finally {

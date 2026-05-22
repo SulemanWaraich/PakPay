@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { AlertTriangle, ShieldAlert, FileText } from "lucide-react";
 import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { isApprovedPaymentQrPayload } from "../../lib/kyc";
 
 
 type Merchant = {
@@ -49,21 +50,14 @@ const QRCodePage = () => {
         // Store merchant 
         setMerchant(data);
 
-        // ❌ If QR payload missing → KYC not verified yet
-        if (!data.qrPayload || data.qrPayload.trim() === "") {
+        if (
+          data.kycStatus !== "VERIFIED" ||
+          !isApprovedPaymentQrPayload(data.qrPayload)
+        ) {
           setError("Your business verification is pending. QR will appear once approved.");
           return;
         }
 
-        // --------------------------------------------------
-        // ✔ Generate QR image ONLY if merchant is verified
-        // --------------------------------------------------
-        if (data.kycStatus !== "VERIFIED") {
-          setError("Your KYC is pending. QR will unlock after approval.");
-          return;
-        }
-
-        // ✔ Now safe to generate QR code
         const qrImage = await QRCode.toDataURL(data.qrPayload, {
           width: 300,
           margin: 2,

@@ -83,9 +83,9 @@ jobs:
             ENABLE_HSTS=${{ secrets.ENABLE_HSTS }}
             EOF
 
-            docker compose -f docker-compose.yml down
+            docker-compose -f docker-compose.yml down
             docker rmi suleman100devx/pakpay-user-app:latest || true
             docker rmi suleman100devx/pakpay-bank-webhook:latest || true
             docker rmi suleman100devx/pakpay-socket-gateway:latest || true
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --no-build --remove-orphans
+            docker-compose -f docker-compose.yml pull
+            docker-compose -f docker-compose.yml up -d --no-build --remove-orphans

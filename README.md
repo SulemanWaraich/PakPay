@@ -1,220 +1,384 @@
-<div align="center">
+# PakPay
 
-# 🏦 PakPay
+**PakPay** is a fintech MVP that simulates a digital wallet and merchant payment platform for Pakistan. End users can add money (on-ramp), withdraw (off-ramp), send P2P transfers, and pay verified merchants via QR or wallet. Merchants get dashboards, KYC onboarding, settlements (T+2), and PDF statements. Admins review KYC, disputes, and platform transactions.
 
-### Modern Payment Infrastructure — Production-Grade MVP
-
-A full-stack fintech platform simulating real-world digital payment systems with microservices architecture, real-time WebSocket communication, and Docker-based cloud deployment.
-
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-Frontend-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![AWS EC2](https://img.shields.io/badge/AWS-EC2-FF9900?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/ec2/)
-
-[Live Demo](https://pakpay10.site) · [Report Bug](https://github.com/suleman100devx/PakPay/issues) · [Request Feature](https://github.com/suleman100devx/PakPay/issues)
-
-</div>
+**Live demo:** [https://pakpay10.site](https://pakpay10.site)
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Architecture](#-architecture)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Docker Deployment](#-docker-deployment)
-- [CI/CD Pipeline](#-cicd-pipeline)
-- [Services](#-services)
-- [Future Roadmap](#-future-roadmap)
-
----
-
-## 🌟 Overview
-
-PakPay is a complete MVP of a modern payment ecosystem built with a **production-first mindset**. It simulates real fintech workflows including user transactions, real-time socket notifications, and bank webhook integrations — all orchestrated via Docker Compose and deployed on AWS EC2.
-
-**Key highlights:**
-- 🔐 Secure user authentication with session management
-- ⚡ Real-time transaction notifications via WebSockets
-- 🏦 Bank webhook simulation with event-driven processing
-- 🧩 Modular monorepo with independent microservices
-- 🐳 Fully containerized with Docker Compose
-- 🚀 Automated CI/CD via GitHub Actions
+- [App Overview](#app-overview)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Features](#features)
+- [API Reference](#api-reference)
+- [Database Schema](#database-schema)
+- [Auth & Security](#auth--security)
+- [Financial Logic](#financial-logic)
+- [Deployment](#deployment)
+- [Testing](#testing)
+- [Known Limitations & TODOs](#known-limitations--todos)
 
 ---
 
-## 🏗️ Architecture
+## App Overview
 
+| Audience | Value |
+|----------|--------|
+| **Consumers (USER)** | Wallet balance, bank-simulated top-up/withdraw, P2P by phone, pay merchants, disputes |
+| **Merchants (MERCHANT)** | QR payments, analytics, settlements, KYC document upload, statements |
+| **Admins (ADMIN)** | KYC approval, dispute refunds, transaction oversight |
+
+Core value: a **production-style monorepo** demonstrating event-driven bank webhooks, signed HMAC callbacks, real-time Socket.IO notifications, and role-based access — suitable as a portfolio / demo system, not licensed production banking.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Monorepo | Turborepo, Yarn workspaces |
+| Frontend | Next.js 14 (App Router), React, Tailwind, Recoil (`@repo/store`) |
+| API | Next.js Route Handlers (`apps/user-app/src/app/api/*`) |
+| Auth | NextAuth.js (Credentials, JWT sessions, 30-day max age) |
+| Bank simulation | Express (`apps/bank-webhook`), HMAC-SHA256 (`@repo/webhook-signing`) |
+| Real-time | Socket.IO (`apps/socket-gateway`) + Redis pub/sub |
+| Database | PostgreSQL + Prisma (`packages/db`) |
+| Cache / rate limits | Redis |
+| File uploads | Cloudinary (KYC, logos) |
+| Email | Nodemailer (contact, password reset) |
+| CI/CD | GitHub Actions → Docker Hub → AWS EC2 |
+| Tests | Vitest (unit), Playwright (e2e), `security-test.js` (integration) |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+  Browser[Browser / Next.js UI]
+  UA[user-app :3000 / :3005]
+  BW[bank-webhook :3003]
+  SG[socket-gateway :5000]
+  Redis[(Redis)]
+  PG[(PostgreSQL)]
+
+  Browser --> UA
+  UA -->|Prisma| PG
+  UA -->|signed POST| BW
+  BW -->|Prisma $transaction| PG
+  BW -->|publish| Redis
+  Redis --> SG
+  SG -->|Socket.IO| Browser
 ```
-Client (Browser)
-      │
-      ▼
-   Nginx (Reverse Proxy)
-      │
-      ├──▶ user-app        (Next.js · Port 3005)
-      │         │
-      │         ├──▶ bank-webhook   (Express · Port 4000)
-      │         │         │
-      │         │         └──▶ Redis (Pub/Sub · Port 6379)
-      │         │
-      │         └──▶ socket-gateway (WebSocket · Port 5000)
-      │                   │
-      │                   └──▶ Redis (Pub/Sub · Port 6379)
-      │
-      └──▶ PostgreSQL (via Prisma ORM)
-```
 
-**Monorepo structure:**
+**Pattern:** Modular monorepo with **thin API routes** and **no dedicated service layer** — business logic lives in route handlers, server actions, and `bank-webhook`. Financial mutations for bank flows are centralized in `bank-webhook`; P2P and admin refunds mutate balances directly in `user-app`.
 
 ```
 PakPay/
 ├── apps/
-│   ├── user-app/          # Next.js frontend + API routes
-│   ├── socket-gateway/    # WebSocket server (Socket.IO)
-│   └── bank-webhook/      # Bank callback simulation
+│   ├── user-app/          # Next.js UI + /api routes
+│   ├── bank-webhook/      # Balance mutations from bank callbacks
+│   └── socket-gateway/    # WebSocket notifications
 ├── packages/
-│   └── db/                # Prisma schema & migrations
-├── docker/                # Dockerfiles per service
-├── docker-compose.yml     # Multi-service orchestration
-└── .env                   # Environment variables (gitignored)
+│   ├── db/                # Prisma schema & client
+│   ├── store/             # Recoil balance atom
+│   ├── webhook-signing/   # HMAC verify/sign
+│   ├── ui/                # Shared UI components
+│   └── config-*           # ESLint, Tailwind, TS configs
+├── docker/                # Dockerfiles
+├── docker-compose.yml
+└── scripts/k6/            # Load smoke tests
 ```
 
 ---
 
-## ⚙️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js, Tailwind CSS |
-| Backend | Node.js, Express.js |
-| Real-time | Socket.IO (WebSockets) |
-| Database | PostgreSQL + Prisma ORM |
-| Cache / Pub-Sub | Redis |
-| Containerization | Docker, Docker Compose |
-| Reverse Proxy | Nginx |
-| Cloud | AWS EC2 |
-| CI/CD | GitHub Actions |
-
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Node.js v18+
-- Docker & Docker Compose
-- PostgreSQL (only if running without Docker)
+- Node.js ≥ 18
+- Yarn 1.x
+- PostgreSQL (or Docker)
+- Redis (or Docker)
 
-### Local Development (Docker — Recommended)
+### Environment setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/suleman100devx/PakPay.git
-cd PakPay
-
-# 2. Create your local .env file (see Environment Variables section)
 cp .env.example .env
+# Edit DATABASE_URL, secrets, URLs
+```
 
-# 3. Start all services
+### Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `PRISMA_ACCELERATE_URL` | No | Prisma Accelerate (optional) |
+| `NEXTAUTH_SECRET` / `JWT_SECRET` | Prod: Yes | Session signing (min 32 chars in prod) |
+| `NEXTAUTH_URL` | Yes | Public app URL (e.g. `https://pakpay10.site`) |
+| `NEXT_PUBLIC_BASE_URL` | Yes | Baked at build; QR / pay links |
+| `NEXT_PUBLIC_SOCKET_URL` | Yes | Socket gateway URL (baked at build) |
+| `BANK_WEBHOOK_URL` | Yes | e.g. `http://bank-webhook:3003` |
+| `BANK_WEBHOOK_SECRET` | Yes | Shared HMAC secret (user-app + bank-webhook) |
+| `REDIS_URL` | Yes | Rate limits, login lockout, pub/sub |
+| `CRON_SECRET` | Prod: Yes | Bearer for `/api/cron/auto-settlement` |
+| `SOCKET_CORS_ORIGIN` | Yes | Allowed Socket.IO origin |
+| `EMAIL_USER` / `EMAIL_PASS` | No | SMTP for contact & reset |
+| `CLOUDINARY_*` | No | KYC / logo uploads |
+| `ENFORCE_HTTPS` | No | Redirect HTTP→HTTPS on app routes |
+| `ENABLE_HSTS` | No | HSTS header when behind TLS |
+| `LOG_LEVEL` | No | `info` (prod) / `debug` (dev) |
+
+> Never commit `.env`. Seed passwords go in gitignored `packages/db/prisma/seed.credentials.local.ts`.
+
+### Install, migrate, seed, run
+
+**Docker (recommended):**
+
+```bash
 docker compose up -d --build
-
-# 4. Run database migrations
-docker exec -it pakpay-user-app-1 npx prisma migrate deploy
-
-# 5. Verify everything is running
-docker ps
+docker exec -it <user-app-container> npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma
+npm run db:seed   # from host, with DATABASE_URL pointing at DB
 ```
 
-**Access the app:**
-- 🌐 Frontend: [http://localhost:3005](http://localhost:3005)
-- 🔌 Socket Gateway: [http://localhost:5000](http://localhost:5000)
-- 🏦 Bank Webhook: [http://localhost:4000](http://localhost:4000)
+| Service | Host port |
+|---------|-----------|
+| user-app | 3005 → 3000 |
+| bank-webhook | 4000 → 3003 |
+| socket-gateway | 5000 |
+| redis | 6379 |
 
-### Local Development (Without Docker)
-
-```bash
-npm install
-npm run dev
-```
-
-### Database seed (local dev users)
-
-Seed passwords live in a **gitignored** file so they are never pushed:
+**Local dev (no Docker):**
 
 ```bash
+yarn install
+npm run db:generate
+npm run db:migrate
 cp packages/db/prisma/seed.credentials.example.ts packages/db/prisma/seed.credentials.local.ts
-# Edit packages/db/prisma/seed.credentials.local.ts with your dev emails/passwords
 npm run db:seed
+# Terminal 1: user-app
+cd apps/user-app && yarn dev
+# Terminal 2: bank-webhook
+cd apps/bank-webhook && yarn dev
+# Terminal 3: socket-gateway
+cd apps/socket-gateway && yarn dev
 ```
 
-Sign in with the **email** and password from `seed.credentials.local.ts` (not phone number).
+**Production build:**
+
+```bash
+npm run build
+npm run start-user-app
+npm run start-bank-webhook
+```
 
 ---
 
-## 🔐 Environment Variables
+## Features
 
-Create a `.env` file at the repo root. This file is **gitignored** — never commit it.
+| Feature | Behavior |
+|---------|----------|
+| **Registration** | Email + phone + password; roles `USER` or `MERCHANT`; creates `Balance` at 0; merchant gets `MerchantProfile` |
+| **Sign in** | NextAuth credentials; Redis login lockout after failures |
+| **Password reset** | Hashed token, 15 min expiry, email link |
+| **Wallet on-ramp** | Creates `OnRampTransaction` (Processing); client calls `/api/onramp-proxy` → signed `hdfcWebHook` credits balance |
+| **Wallet off-ramp** | Creates `OffRampTransaction`; proxy → `withdrawWebHook` debits balance |
+| **P2P transfer** | Server action; `SELECT FOR UPDATE` on sender balance; atomic debit/credit |
+| **Pay merchant** | Balance check → `MerchantTransaction` PENDING → `merchantWebHook` moves funds |
+| **QR pay** | Public `/pay?mid=&type=&ref=`; merchant must be KYC VERIFIED |
+| **Merchant KYC** | Upload CNIC + proof via Cloudinary; admin APPROVE/REJECT |
+| **Settlements** | Cron T+2: group unsettled SUCCESS txns, create `Settlement`, debit merchant via webhook |
+| **Disputes** | User opens on SUCCESS txn; admin REFUND (balance reversal) or REJECT |
+| **Analytics** | Merchant 30d revenue, daily chart, top customers |
+| **Statements** | PDF export by month or date range |
+| **Real-time** | Redis events → Socket.IO (`paymentEvent`, `settlementEvent`, `bankWebhookEvent`) |
+| **Admin** | List merchants, transactions, manage KYC & disputes |
+| **Contact** | Public form with IP rate limit + SMTP |
 
-### Local (`.env`)
+---
 
-```env
-# Database
-DATABASE_URL=postgresql://username:password@localhost:5432/pakpay
+## API Reference
 
-# App URLs
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+Base URL: `{NEXT_PUBLIC_BASE_URL}/api`. Auth = NextAuth session cookie unless noted.
 
-# Services
-SOCKET_CORS_ORIGIN=http://localhost:3005
-BANK_WEBHOOK_URL=http://bank-webhook:3003
-BANK_WEBHOOK_SECRET=change-me-min-32-chars-for-hmac-signing!!
-REDIS_URL=redis://redis:6379
+### Auth
 
-# Auth (set strong values in production)
-JWT_SECRET=change-me-min-32-characters-long-secret
-NEXTAUTH_URL=http://localhost:3005
-NEXTAUTH_SECRET=change-me-min-32-characters-long-secret
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| GET/POST | `/auth/[...nextauth]` | — | NextAuth flows | Session / CSRF |
+| POST | `/auth/login` | No | `{ email, password }` | `{ success, message }` (no cookie) |
+| POST | `/auth/forgot-password` | No | `{ email }` | Generic success |
+| POST | `/auth/reset-password` | No | `{ token, password }` | Success / error |
+| GET | `/auth/verify-reset-token` | No | `?token=` | `{ valid: boolean }` |
 
-# Cron (optional; required in production for /api/cron/auto-settlement)
-CRON_SECRET=change-me-cron-secret
+### User
 
-# TLS helpers (behind reverse proxy)
-ENFORCE_HTTPS=false
-ENABLE_HSTS=false
-```
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| POST | `/register` | No | `registerBodySchema` | 201 `{ success, message }` |
+| GET | `/user` | Session | — | `{ user: { id, name, email, role } }` |
+| GET | `/spending` | Session | — | Weekly aggregates (on/off-ramp, p2p) |
 
-### Production (EC2 `.env`)
+### Wallet
 
-```env
-# Database
-DATABASE_URL=postgresql://username:password@host:5432/pakpay
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| POST | `/create-onramp` | Session | `{ amount, bank }` | `{ success, transaction }` |
+| POST | `/create-offramp` | Session | `createOffRampSchema` | `{ success, transaction }` |
+| POST | `/onramp-proxy` | Session (own userId) | `{ token, userId, amount? }` | `{ success: true }` |
+| POST | `/offramp-proxy` | Session (own userId) | `{ token, user_identifier, amount? }` | `{ success: true }` |
 
-# App URLs
-NEXT_PUBLIC_BASE_URL=https://pakpay10.site
-NEXT_PUBLIC_SOCKET_URL=http://13.61.10.49:5000
+### Payments
 
-# Services
-SOCKET_CORS_ORIGIN=https://pakpay10.site
-BANK_WEBHOOK_URL=http://bank-webhook:3003
-BANK_WEBHOOK_SECRET=your-production-hmac-secret-min-32-chars
-REDIS_URL=redis://redis:6379
-JWT_SECRET=your-production-jwt-secret-min-32-chars
-NEXTAUTH_URL=https://pakpay10.site
-NEXTAUTH_SECRET=your-production-nextauth-secret-min-32-chars
-CRON_SECRET=your-cron-bearer-token
-ENFORCE_HTTPS=true
-ENABLE_HSTS=true
-```
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| POST | `/pay` | Session USER | `{ merchantId, amount, ref?, paymentMethod? }` | `{ success, payment }` |
+| GET | `/pay/merchant` | **Public** | `?mid=` profile id | Merchant public info |
 
-> ⚠️ `NEXT_PUBLIC_*` variables are baked into the Next.js bundle **at build time**. Always rebuild the `user-app` image after changing them.
+### Merchant
 
-### Bank webhook signing (HMAC-SHA256)
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| GET/POST | `/qr` | Session MERCHANT | POST: profile fields | Profile + QR payload |
+| GET | `/merchant` | Session | — | Profile + QR |
+| POST | `/merchant/kyc-documents` | Session MERCHANT | multipart files | `{ ok: true }` |
+| GET | `/merchant/transactions` | Session MERCHANT | — | `{ payments, settlements }` |
+| GET | `/merchant/analytics` | Session MERCHANT | — | Revenue metrics |
+| GET | `/merchant/statement` | Session MERCHANT | `?month=` or `?from=&to=` | PDF |
 
-`user-app` calls `bank-webhook` with a JSON body and header `x-pakpay-signature: sha256=<hex>`, where the hex is `HMAC-SHA256(BANK_WEBHOOK_SECRET, rawBodyUtf8)` and `rawBodyUtf8` is **exactly** the same string sent as the HTTP body (for example `JSON.stringify(payload)`). `bank-webhook` verifies the signature on every webhook route before mutating balances. Use the **same** `BANK_WEBHOOK_SECRET` in both services.
+### Disputes & admin
+
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| GET/POST | `/disputes` | Session | POST: `{ merchantTransactionId, reason }` | Dispute rows |
+| GET | `/admin/merchants` | ADMIN | — | All profiles |
+| POST | `/admin/kyc` | ADMIN | `{ merchantId, action, reason? }` | KYC update |
+| GET | `/admin/transactions` | ADMIN | — | Platform txns |
+| POST | `/admin/disputes` | ADMIN | `{ disputeId, action, note? }` | `{ ok: true }` |
+
+### Other
+
+| Method | Path | Auth | Request | Response |
+|--------|------|------|---------|----------|
+| POST | `/contact` | No (rate limited) | `{ name, email, message }` | Success |
+| POST | `/cron/auto-settlement` | Bearer `CRON_SECRET` | — | Settlement summary |
+
+### Bank-webhook service (internal)
+
+| Method | Path | Auth | Body |
+|--------|------|------|------|
+| GET | `/health` | No | — |
+| POST | `/hdfcWebHook` | HMAC | `{ token, userId, amount }` |
+| POST | `/withdrawWebHook` | HMAC | `{ token, user_identifier, amount }` |
+| POST | `/merchantWebHook` | HMAC | `{ token, merchantId, amount, customerId }` |
+| POST | `/merchantSettlementWebHook` | HMAC | `{ settlementId, merchantId, amount }` |
+
+Header: `x-pakpay-signature: sha256=<hex>` over raw JSON body.
+
+---
+
+## Database Schema
+
+All amounts are stored as **integers** (intended as minor units / paisa in UI, but some flows send whole PKR — see [Financial Logic](#financial-logic)).
+
+### Tables
+
+| Model | Key fields | Relationships |
+|-------|------------|---------------|
+| `User` | email?, number (unique), password, role | → Balance, transfers, ramps, disputes |
+| `Balance` | userId (unique), amount, locked | → User |
+| `MerchantProfile` | userId, kycStatus, qrPayload, docs URLs | → User, transactions, settlements |
+| `MerchantTransaction` | merchantId, customerId?, amount, status, ref?, settled | → Merchant, customer, settlement |
+| `Settlement` | merchantId, amount, status, scheduledFor | → Merchant, transactions |
+| `SettlementLock` | id=1, locked | Cron idempotency |
+| `p2pTransfer` | fromUserId, toUserId, amount, timestamp | → Users |
+| `OnRampTransaction` | token (unique), status, amount, provider | → User |
+| `OffRampTransaction` | token (unique), status, bank fields | → User |
+| `Dispute` | transactionId, userId, status | → MerchantTransaction, User |
+| `AuditLog` | merchantId, action, performedBy | → MerchantProfile |
+
+### Enums
+
+- `UserRole`: USER, MERCHANT, ADMIN
+- `KycStatus`: PENDING, SUBMITTED, VERIFIED, REJECTED
+- `TransactionStatus`: SUCCESS, FAILED, PENDING
+- `SettlementStatus`: PROCESSING, SUCCESS, FAILED, PENDING
+- `PaymentMethod`: QR, CARD, WALLET, BANK_TRANSFER
+
+### Indexes (implicit via Prisma)
+
+Unique: `User.email`, `User.number`, `OnRampTransaction.token`, `OffRampTransaction.token`, `MerchantTransaction.ref`, `MerchantProfile.userId`, `MerchantProfile.qrPayload`.
+
+---
+
+## Auth & Security
+
+### Flow
+
+1. User signs in via `/auth/signin` → NextAuth Credentials → bcrypt verify.
+2. JWT issued (30 days); `session.user.id` and `session.user.role` exposed.
+3. Page routes `/user/*`, `/merchant/*`, `/admin/*` guarded by `apps/user-app/middleware.ts` (role redirects).
+4. API routes call `getServerSession(authOptions)` per handler.
+
+### Role permissions
+
+| Action | USER | MERCHANT | ADMIN |
+|--------|------|----------|-------|
+| Wallet / P2P / pay | ✅ | — | — |
+| Merchant dashboard / KYC | — | ✅ | — |
+| Admin KYC / disputes / txns | — | — | ✅ |
+| Public pay page (verified merchant) | ✅ | ✅ | ✅ |
+
+### Security measures
+
+- HMAC-signed bank webhooks (production enforced)
+- Redis rate limits (pay, register, on-ramp, contact)
+- Login lockout (Redis)
+- Password reset tokens hashed
+- Cron bearer auth in production
+- Webhook IP rate limit (120/min)
+
+---
+
+## Financial Logic
+
+### Transaction lifecycle
+
+1. **On-ramp:** `Processing` → webhook → `Success` + balance `+= amount`
+2. **Off-ramp:** `Processing` → webhook → `Success` + balance `-= amount` (or `Failure`)
+3. **Merchant pay:** `PENDING` at create → webhook → `SUCCESS` + customer `-=` / merchant `+=`
+4. **P2P:** Single DB transaction with row lock on sender
+5. **Settlement:** Cron marks txns `settled`, creates `Settlement`, webhook debits merchant `Balance`
+6. **Refund:** Admin dispute REFUND reverses balances, txn `FAILED` + `refunded`
+
+### Balance calculations
+
+- **User wallet UI:** `Balance.amount` (display often `/100`)
+- **Merchant “available” dashboard:** sum of **settled** SUCCESS `MerchantTransaction` amounts (not `Balance.amount`)
+- **`Balance.locked`:** seeded/displayed but not updated in transfer flows
+
+### Edge cases & known gaps
+
+- **Amount units:** P2P multiplies input ×100; on-ramp/pay send raw PKR — inconsistent (see limitations).
+- **Merchant pay race:** Balance checked in `/api/pay` before async webhook debit.
+- **Webhook partial failure:** `merchantWebHook` updates balances in `$transaction` but status update is separate.
+- **Settlement:** Txns marked `settled` before settlement webhook succeeds.
+- **Idempotency:** Duplicate `ref` on pay returns existing txn without re-webhook.
+
+---
+
+## Deployment
+
+1. Set GitHub Secrets (see existing CI table in repo).
+2. Push to `main` → Actions builds Docker images with `NEXT_PUBLIC_*` build args.
+3. EC2: `docker compose pull && docker compose up -d --no-build`.
+4. Run migrations inside user-app container.
+5. Schedule cron: `POST /api/cron/auto-settlement` with `Authorization: Bearer $CRON_SECRET` (e.g. daily).
+
+**Rebuild required** when changing `NEXT_PUBLIC_BASE_URL` or `NEXT_PUBLIC_SOCKET_URL`.
 
 ---
 
@@ -223,143 +387,32 @@ ENABLE_HSTS=true
 ```bash
 npm ci
 npm run db:generate:no-engine
-npm test                 # Vitest (unit tests in repo)
-cd apps/user-app && npm run test:e2e   # Playwright (start app on :3000 first)
+npm test                    # Vitest
+node security-test.js       # Integration/security (needs running services)
+cd apps/user-app && npm run test:e2e   # Playwright
 ```
 
-Load smoke (optional, requires [k6](https://k6.io/)): `BASE_URL=http://localhost:3005 k6 run scripts/k6/pay-smoke.js`
+Load smoke: `BASE_URL=http://localhost:3005 k6 run scripts/k6/pay-smoke.js`
 
 ---
 
-## 🐳 Docker Deployment
+## Known Limitations & TODOs
 
-All services are defined in `docker-compose.yml` and images are pushed to Docker Hub under `suleman100devx/`.
-
-| Image | Docker Hub |
-|---|---|
-| user-app | `suleman100devx/pakpay-user-app:latest` |
-| bank-webhook | `suleman100devx/pakpay-bank-webhook:latest` |
-| socket-gateway | `suleman100devx/pakpay-socket-gateway:latest` |
-
-**Build and push manually:**
-
-```bash
-docker compose build --push
-```
-
-**Run on EC2 (pull pre-built images):**
-
-```bash
-docker compose pull
-docker compose down
-docker compose up -d --no-build --remove-orphans
-```
+- Simulated bank (on/off-ramp proxy) — not a real payment gateway
+- No PCI / card processor integration
+- KYC is document upload + manual admin review (no automated AML/KYC vendor)
+- Amount unit inconsistency between P2P and wallet/merchant flows
+- Merchant dashboard balance ≠ `Balance` table after settlement
+- No 2FA, OAuth, or mobile app
+- Low automated test coverage
+- Roadmap items in prior README still apply (Stripe, fraud detection, K8s, etc.)
 
 ---
 
-## 🔁 CI/CD Pipeline
+## Contributing
 
-Pushes to `main` trigger an automated GitHub Actions workflow:
+Fork → feature branch → PR. Do not commit `.env` or `seed.credentials.local.ts`.
 
-```
-git push origin main
-        │
-        ▼
-┌─────────────────────┐
-│  GitHub Actions      │
-│  1. Checkout code    │
-│  2. npm ci + tests   │
-│  3. Login Docker Hub │
-│  4. Build & Push     │  ← NEXT_PUBLIC_* vars baked in here
-│     all images       │
-│  5. SSH into EC2     │
-│  6. Write .env file  │
-│  7. Pull new images  │
-│  8. docker compose   │
-│     up --no-build    │
-└─────────────────────┘
-        │
-        ▼
-   Live on pakpay10.site ✅
-```
+## License
 
-**Required GitHub Secrets:**
-
-| Secret | Value |
-|---|---|
-| `DOCKER_USERNAME` | Docker Hub username |
-| `DOCKER_PASSWORD` | Docker Hub password |
-| `SSH_HOST` | `13.61.10.49` |
-| `SSH_USERNAME` | `ec2-user` |
-| `SSH_KEY` | EC2 private key (`.pem` contents) |
-| `NEXT_PUBLIC_SOCKET_URL` | `http://13.61.10.49:5000` |
-| `NEXT_PUBLIC_BASE_URL` | `https://pakpay10.site` |
-| `SOCKET_CORS_ORIGIN` | `https://pakpay10.site` |
-| `REDIS_URL` | `redis://redis:6379` |
-| `BANK_WEBHOOK_URL` | `http://bank-webhook:3003` |
-| `DATABASE_URL` | Postgres connection string |
-| `BANK_WEBHOOK_SECRET` | Shared HMAC secret (same in user-app + bank-webhook) |
-| `JWT_SECRET` | Session signing (min 8 chars; use 32+ in prod) |
-| `NEXTAUTH_SECRET` | Optional; falls back to `JWT_SECRET` |
-| `NEXTAUTH_URL` | Public site URL, e.g. `https://pakpay10.site` |
-| `CRON_SECRET` | Bearer token for `/api/cron/auto-settlement` |
-| `PRISMA_ACCELERATE_URL` | Optional Prisma Accelerate URL |
-| `EMAIL_USER` / `EMAIL_PASS` | Contact form SMTP (optional) |
-| `CLOUDINARY_*` | KYC / logo uploads (optional) |
-| `ENFORCE_HTTPS` / `ENABLE_HSTS` | `true` behind TLS terminator |
-
----
-
-## 📦 Services
-
-| Service | Port | Description |
-|---|---|---|
-| `user-app` | 3005 | Next.js frontend + API |
-| `socket-gateway` | 5000 | Real-time WebSocket server |
-| `bank-webhook` | 4000 | Bank callback simulation |
-| `redis` | 6379 | Caching & pub/sub |
-
----
-
-## 📈 Future Roadmap
-
-- [ ] Payment gateway integration (Stripe / local providers)
-- [ ] Admin dashboard with transaction analytics
-- [ ] Transaction history & reporting
-- [ ] Two-factor authentication (2FA)
-- [ ] OAuth login (Google, GitHub)
-- [ ] React Native mobile app
-- [ ] Kubernetes deployment
-- [ ] Rate limiting & fraud detection
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to fork this repo and open a PR.
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📬 Contact
-
-**Muhammad Suleman** — Frontend Developer | React Specialist
-
-[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-blue)](your-portfolio-link)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?logo=linkedin)](your-linkedin-link)
-[![Email](https://img.shields.io/badge/Email-Contact-red)](mailto:your-email)
-
----
-
-<div align="center">
-
-⭐ **If you found this useful, please star the repo!** ⭐
-
-*PakPay is not just a project — it's a production-style system design built to simulate real fintech workflows with scalability and modularity in mind.*
-
-</div>
+See repository license file if present.

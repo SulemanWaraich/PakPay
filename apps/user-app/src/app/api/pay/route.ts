@@ -186,6 +186,7 @@ export async function POST(req: Request) {
       paymentRef,
     );
 
+    // Any finalize failure (including lock_mismatch) runs compensation; lock is not released here.
     if (!finalizeResult.ok) {
       console.error("finalizeCustomerMerchantPayment failed after SUCCESS:", finalizeResult);
       const compensation = await compensateFinalizeFailureAfterSuccess(

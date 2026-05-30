@@ -32,6 +32,23 @@ export default async function MerchantDashboardPage() {
       redirect("/api/selector")
     }
 
+    const [balanceRow, pendingSettlementResult] = await Promise.all([
+      prisma.balance.findUnique({
+        where: { userId: merchantUserId },
+      }),
+      prisma.merchantTransaction.aggregate({
+        where: {
+          merchantId: merchant.id,
+          status: "SUCCESS",
+          settled: false,
+        },
+        _sum: { amount: true },
+      }),
+    ])
+
+    const availableBalance = balanceRow?.amount ?? 0
+    const pendingSettlement = pendingSettlementResult._sum.amount ?? 0
+
     const transactions = await prisma.merchantTransaction.findMany({
       where: {
         merchantId: merchant.id,
@@ -73,15 +90,6 @@ export default async function MerchantDashboardPage() {
 
     const weeklyRevenue = transactions
       .filter(t => t.createdAt >= weekAgo)
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    // 💰 Settlement balances
-    const availableBalance = transactions
-      .filter(t => t.settled)
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const pendingSettlement = transactions
-      .filter(t => !t.settled)
       .reduce((sum, t) => sum + t.amount, 0)
 
     // 💳 Revenue by payment method
@@ -148,7 +156,7 @@ export default async function MerchantDashboardPage() {
                 <CardContent className="p-4">
                   <p className="text-xs uppercase">Available Balance</p>
                   <p className="text-3xl font-bold">PKR {paisaToPkr(availableBalance).toLocaleString()}</p>
-                  <p className="text-xs">Settled to bank</p>
+                  <p className="text-xs">Withdrawable now (wallet ledger)</p>
                 </CardContent>
               </Card>
 
@@ -170,7 +178,7 @@ export default async function MerchantDashboardPage() {
                 <CardContent className="p-4">
                   <p className="text-xs text-gray-500">Pending Settlement</p>
                   <p className="text-2xl font-bold text-orange-600">PKR {paisaToPkr(pendingSettlement).toLocaleString()}</p>
-                  <p className="text-xs">Auto off-ramp in T+2</p>
+                  <p className="text-xs">Successful payments awaiting T+2 payout</p>
                 </CardContent>
               </Card>
             </div>
@@ -184,15 +192,6 @@ export default async function MerchantDashboardPage() {
 
             {/* Top Customers */}
             <TopCustomers customers={topCustomers} />
-            {/* 🔍 TEMP DEBUG — remove after checking */}
-            {
-              (
-                console.log("🧑 customerMap:", JSON.stringify(customerMap, null, 2)),
-                console.log("🏆 topCustomers:", JSON.stringify(topCustomers, null, 2)),
-                console.log("📦 sample txn customerId:", transactions[0]?.customerId)
-              )
-
-            }
 
             {/* Revenue by Payment Method */}
             <Card className="mb-6">

@@ -136,21 +136,61 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
   }
 
   try {
-    await db.$transaction(
-      [
-        db.balance.update({
+    const outcome = await db.$transaction(
+      async (tx) => {
+        const offRamp = await tx.offRampTransaction.findUnique({ where: { token } });
+        if (!offRamp || offRamp.userId !== userId) {
+          return { kind: "invalid" as const };
+        }
+        if (offRamp.status !== "Processing") {
+          return { kind: "not_processing" as const };
+        }
+
+        await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${userId} FOR UPDATE`;
+
+        const balance = await tx.balance.findUnique({ where: { userId } });
+        if (!balance) {
+          await tx.offRampTransaction.update({
+            where: { token },
+            data: { status: "Failure" },
+          });
+          return { kind: "no_balance" as const };
+        }
+
+        if (balance.amount < amount) {
+          await tx.offRampTransaction.update({
+            where: { token },
+            data: { status: "Failure" },
+          });
+          return { kind: "insufficient" as const };
+        }
+
+        await tx.balance.update({
           where: { userId },
-          data: {
-            amount: { decrement: amount },
-          },
-        }),
-        db.offRampTransaction.update({
+          data: { amount: { decrement: amount } },
+        });
+        await tx.offRampTransaction.update({
           where: { token },
           data: { status: "Success" },
-        }),
-      ],
+        });
+
+        return { kind: "ok" as const };
+      },
       { maxWait: 10_000, timeout: 20_000 },
     );
+
+    if (outcome.kind === "invalid") {
+      return res.status(400).json({ msg: "invalid withdrawal token" });
+    }
+    if (outcome.kind === "not_processing") {
+      return res.status(400).json({ msg: "withdrawal is not in processing state" });
+    }
+    if (outcome.kind === "no_balance") {
+      return res.status(400).json({ msg: "wallet not found" });
+    }
+    if (outcome.kind === "insufficient") {
+      return res.status(400).json({ msg: "insufficient balance for withdrawal" });
+    }
 
     await publishEvent("web-app-channel", {
       type: "offRampSuccess",

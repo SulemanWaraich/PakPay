@@ -188,12 +188,20 @@ export async function POST(req: Request) {
 
     if (!finalizeResult.ok) {
       console.error("finalizeCustomerMerchantPayment failed after SUCCESS:", finalizeResult);
-      await compensateFinalizeFailureAfterSuccess(
+      const compensation = await compensateFinalizeFailureAfterSuccess(
         paymentRef,
         customerId,
         merchant.userId,
         amountPaisa,
       );
+
+      if (compensation.outcome === "COMPENSATION_FAILED_MANUAL_REVIEW") {
+        return jsonError(
+          "Payment processing error. Our team has been notified.",
+          500,
+        );
+      }
+
       return jsonError(
         "Payment could not be completed. Your wallet has been refunded.",
         502,

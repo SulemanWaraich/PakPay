@@ -12,6 +12,7 @@ export type ValidatedUser = {
   name: string | null;
   email: string | null;
   role: "USER" | "MERCHANT" | "ADMIN";
+  sessionVersion: number;
 };
 
 export type CredentialResult =
@@ -62,6 +63,7 @@ export async function validateCredentials(
       name: existingUser.name,
       email: existingUser.email,
       role: existingUser.role,
+      sessionVersion: existingUser.sessionVersion,
     },
   };
 }

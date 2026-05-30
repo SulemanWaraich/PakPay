@@ -14,6 +14,7 @@ model User {
   name               String?
   number             String                @unique
   password           String
+  sessionVersion     Int                   @default(0)
   resetTokenExpiry   DateTime?
   resetTokenHash     String?
   role               UserRole              @default(USER)
@@ -153,6 +154,8 @@ model Dispute {
   adminNotes          String?
   MerchantTransaction MerchantTransaction @relation(fields: [transactionId], references: [id])
   User                User                @relation(fields: [userId], references: [id])
+
+  @@unique([transactionId])
 }
 
 model Balance {

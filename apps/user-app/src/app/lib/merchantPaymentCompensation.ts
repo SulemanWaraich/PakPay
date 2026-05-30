@@ -1,8 +1,9 @@
 import prisma from "@repo/db";
+import { releaseMerchantPaymentLock } from "./balanceLocks";
 
 /**
- * Idempotent: only refunds customer and marks FAILED while txn is still PENDING.
- * Used when merchant webhook fails after the customer was debited in /api/pay.
+ * Idempotent: only releases lock and marks FAILED while txn is still PENDING.
+ * Used when merchant webhook fails after funds were reserved in /api/pay.
  */
 export async function compensateFailedMerchantPayment(
   ref: string,
@@ -15,10 +16,7 @@ export async function compensateFailedMerchantPayment(
       return;
     }
 
-    await tx.balance.update({
-      where: { userId: customerId },
-      data: { amount: { increment: amountPaisa } },
-    });
+    await releaseMerchantPaymentLock(tx, customerId, amountPaisa);
 
     await tx.merchantTransaction.update({
       where: { ref },

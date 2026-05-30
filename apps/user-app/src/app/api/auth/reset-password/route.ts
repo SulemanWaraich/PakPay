@@ -43,6 +43,7 @@ export async function POST(req: Request) {
       password: hashedPassword,
       resetTokenHash: null,
       resetTokenExpiry: null,
+      sessionVersion: { increment: 1 },
     },
   });
 

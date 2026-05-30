@@ -54,10 +54,16 @@ async function startServer() {
 
   io.on("connection", (socket) => {
     const merchantId = socket.handshake.auth.merchantId;
+    const userId = socket.handshake.auth.userId;
 
     if (merchantId) {
       socket.join(`merchant-${merchantId}`);
       logger.info("Merchant joined room", { merchantId });
+    }
+
+    if (userId) {
+      socket.join(`user-${userId}`);
+      logger.info("User joined room", { userId });
     }
   });
 
@@ -67,15 +73,37 @@ async function startServer() {
 
     switch (data.type) {
       case "merchantSettlementSuccess":
-        io.to(`merchant-${data.merchantId}`).emit("settlementEvent", data);
+        io.to(`merchant-${data.merchantId}`).emit("settlementEvent", {
+          type: data.type,
+          merchantId: data.merchantId,
+          amount: data.amount,
+          settlementId: data.settlementId,
+        });
         break;
 
       case "merchantPaymentSuccess":
-        io.to(`merchant-${data.merchantId}`).emit("paymentEvent", data);
+        io.to(`merchant-${data.merchantId}`).emit("paymentEvent", {
+          type: data.type,
+          merchantId: data.merchantId,
+          amount: data.amount,
+          token: data.token,
+        });
+        break;
+
+      case "onRampSuccess":
+      case "offRampSuccess":
+        if (data.userId != null) {
+          io.to(`user-${data.userId}`).emit(data.type, {
+            type: data.type,
+            userId: data.userId,
+            amount: data.amount,
+            token: data.token,
+          });
+        }
         break;
 
       default:
-        io.emit("bankWebhookEvent", data);
+        logger.warn("Unhandled Redis event type", { type: data.type });
     }
   });
 

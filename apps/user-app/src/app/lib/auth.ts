@@ -1,16 +1,21 @@
 import Credentials from "next-auth/providers/credentials";
+import db from "@repo/db";
 import { validateCredentials } from "./credentialsAuth";
 import { authSecret } from "./authSecret";
 
 const useSecureCookies =
   process.env.NEXTAUTH_URL?.startsWith("https://") === true;
 
+const SESSION_MAX_AGE = 8 * 60 * 60; // 8 hours
+const SESSION_UPDATE_AGE = 60 * 60; // reissue JWT every hour of activity
+
 export const authOptions = {
   secret: authSecret(),
   useSecureCookies,
   session: {
     strategy: "jwt" as const,
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: SESSION_MAX_AGE,
+    updateAge: SESSION_UPDATE_AGE,
   },
   cookies: {
     sessionToken: {
@@ -19,9 +24,9 @@ export const authOptions = {
         : "next-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: "none" as const,   // ← changed from "lax"
+        sameSite: "none" as const,
         path: "/",
-        secure: true,                // ← always true (required for SameSite=none)
+        secure: true,
       },
     },
     csrfToken: {
@@ -67,16 +72,48 @@ export const authOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }: { token: any; user?: any }) {
+    async jwt({ token, user }: { token: Record<string, unknown>; user?: { role?: string; sessionVersion?: number } }) {
       if (user) {
         token.role = user.role;
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
+
+      const sub = token.sub;
+      if (sub) {
+        const dbUser = await db.user.findUnique({
+          where: { id: Number(sub) },
+          select: { sessionVersion: true },
+        });
+
+        if (!dbUser) {
+          token.sessionInvalid = true;
+          return token;
+        }
+
+        const tokenVersion =
+          typeof token.sessionVersion === "number" ? token.sessionVersion : 0;
+
+        if (dbUser.sessionVersion !== tokenVersion) {
+          token.sessionInvalid = true;
+        }
+      }
+
       return token;
     },
 
-    async session({ token, session }: { token: any; session: any }) {
+    async session({
+      token,
+      session,
+    }: {
+      token: Record<string, unknown>;
+      session: { user?: { id?: string; role?: string } };
+    }) {
+      if (token.sessionInvalid) {
+        throw new Error("Session expired. Please sign in again.");
+      }
+
       if (session.user) {
-        session.user.id = token.sub!;
+        session.user.id = String(token.sub);
         session.user.role = token.role as "USER" | "MERCHANT" | "ADMIN";
       }
       return session;

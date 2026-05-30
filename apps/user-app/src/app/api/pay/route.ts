@@ -9,7 +9,10 @@ import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
 import { pkrToPaisa, withAmountInPkr } from "../../lib/money";
-import { compensateFailedMerchantPayment } from "../../lib/merchantPaymentCompensation";
+import {
+  compensateFailedMerchantPayment,
+  compensateFinalizeFailureAfterSuccess,
+} from "../../lib/merchantPaymentCompensation";
 import {
   finalizeCustomerMerchantPayment,
   lockFundsForMerchantPayment,
@@ -177,7 +180,25 @@ export async function POST(req: Request) {
       return jsonError("Payment could not be completed. Your wallet has been refunded.", 502);
     }
 
-    await finalizeCustomerMerchantPayment(customerId, amountPaisa, paymentRef);
+    const finalizeResult = await finalizeCustomerMerchantPayment(
+      customerId,
+      amountPaisa,
+      paymentRef,
+    );
+
+    if (!finalizeResult.ok) {
+      console.error("finalizeCustomerMerchantPayment failed after SUCCESS:", finalizeResult);
+      await compensateFinalizeFailureAfterSuccess(
+        paymentRef,
+        customerId,
+        merchant.userId,
+        amountPaisa,
+      );
+      return jsonError(
+        "Payment could not be completed. Your wallet has been refunded.",
+        502,
+      );
+    }
 
     return NextResponse.json({
       success: true,

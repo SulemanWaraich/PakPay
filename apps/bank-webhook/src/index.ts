@@ -69,6 +69,7 @@ async function compensateMerchantWebhookFailure(
       return;
     }
     if (customerId != null) {
+      await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${customerId} FOR UPDATE`;
       const balance = await tx.balance.findUnique({ where: { userId: customerId } });
       if (balance) {
         const release = Math.min(balance.locked, amountPaisa);

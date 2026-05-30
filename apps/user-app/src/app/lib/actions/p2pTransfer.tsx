@@ -4,6 +4,7 @@ import { authOptions } from "../auth"
 import prisma from "@repo/db"
 import { pkrToPaisa, paisaToPkr } from "../money"
 import { availableBalancePaisa } from "../balance"
+import { rateLimitAllow } from "../rateLimitRedis"
 
 /** @param amountPkr Whole PKR from the UI (converted to paisa before ledger writes). */
 export const p2pTransfer = async (to: string, amountPkr: number) => {
@@ -15,13 +16,17 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
       return { success: false, message: "You must be logged in to send money." }
     }
 
+    const fromUserId = Number(from);
+    if (!(await rateLimitAllow(`rl:user:p2p:${fromUserId}`, 30, 60))) {
+      return { success: false, message: "Too many requests" }
+    }
+
     const user = await prisma.user.findFirst({ where: { number: to } })
     if (!user) {
       return { success: false, message: "Receiver account not found." }
     }
 
     const amountPaisa = pkrToPaisa(amountPkr)
-    const fromUserId = Number(from)
     const toUserId = user.id
 
     await prisma.$transaction(async (tx) => {

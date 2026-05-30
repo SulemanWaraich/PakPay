@@ -19,9 +19,15 @@ export async function GET() {
    if (!session?.user?.id ) {
      return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
    }
- 
+
+   if (session.user.role !== "MERCHANT") {
+     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+   }
+
+   const merchantUserId = Number(session.user.id);
+
    const merchant = await prisma.merchantProfile.findUnique({
-     where: { userId: Number(session.user.id) },
+     where: { userId: merchantUserId },
      select: {
        id: true,
        ownerName: true,

@@ -190,6 +190,8 @@ enum TransactionStatus {
   SUCCESS
   FAILED
   PENDING
+  /// Merchant credited but customer finalize failed; manual reversal required.
+  COMPENSATION_PENDING
 }
 
 enum KycStatus {

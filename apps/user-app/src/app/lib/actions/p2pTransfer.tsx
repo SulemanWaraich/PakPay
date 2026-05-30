@@ -5,6 +5,8 @@ import prisma from "@repo/db"
 import { pkrToPaisa, paisaToPkr } from "../money"
 import { availableBalancePaisa } from "../balance"
 import { rateLimitAllow } from "../rateLimitRedis"
+import { logger } from "../logger"
+import { safeP2pTransferErrorMessage } from "../safeClientError"
 
 /** @param amountPkr Whole PKR from the UI (converted to paisa before ledger writes). */
 export const p2pTransfer = async (to: string, amountPkr: number) => {
@@ -79,7 +81,11 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
       success: true,
       message: `Successfully sent Rs. ${paisaToPkr(amountPaisa).toFixed(2)} to ${to}.`,
     }
-  } catch (error: any) {
-    return { success: false, message: error.message || "Transaction failed. Please try again later." }
+  } catch (error: unknown) {
+    logger.error("p2pTransfer failed", { error: String(error) })
+    return {
+      success: false,
+      message: safeP2pTransferErrorMessage(error),
+    }
   }
 }

@@ -85,14 +85,16 @@ export async function finalizeCustomerMerchantPayment(
     const balance = await tx.balance.findUnique({ where: { userId: customerId } });
     if (!balance || balance.locked < amountPaisa) {
       const lockedPaisa = balance?.locked ?? 0;
-      logger.error("finalizeCustomerMerchantPayment: lock mismatch — releasing stranded funds", {
-        customerId,
-        ref,
-        expectedPaisa: amountPaisa,
-        lockedPaisa,
-        transactionId: txn.id,
-      });
-      await releaseMerchantPaymentLock(tx, customerId, amountPaisa);
+      logger.error(
+        "finalizeCustomerMerchantPayment: lock mismatch — leaving lock intact for compensation saga",
+        {
+          customerId,
+          ref,
+          expectedPaisa: amountPaisa,
+          lockedPaisa,
+          transactionId: txn.id,
+        },
+      );
       result = {
         ok: false,
         reason: "lock_mismatch",

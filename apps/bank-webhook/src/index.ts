@@ -337,6 +337,9 @@ app.post("/merchantWebHook", jsonParser, limiter, requireBankWebhookSignature, a
         if (txn.status === "FAILED") {
           return { kind: "already_failed" as const };
         }
+        if (txn.status === "COMPENSATION_PENDING") {
+          return { kind: "compensation_pending" as const };
+        }
 
         const amountPaisa = txn.amount;
         const customerId = txn.customerId;
@@ -362,6 +365,9 @@ app.post("/merchantWebHook", jsonParser, limiter, requireBankWebhookSignature, a
     }
     if (outcome.kind === "already_failed") {
       return res.status(400).json({ msg: "transaction failed" });
+    }
+    if (outcome.kind === "compensation_pending") {
+      return res.status(200).json({ msg: "already processed" });
     }
     if (outcome.kind === "already_success" || outcome.kind === "processed") {
       await publishEvent("web-app-channel", {

@@ -29,6 +29,31 @@ async function failZombieSettlements(now: Date) {
   }
 }
 
+/** Link transactions to an existing SUCCESS settlement (webhook already debited). */
+async function linkTransactionsToSettlement(
+  settlementId: number,
+  txnIds: number[],
+  now: Date,
+) {
+  await prisma.$transaction([
+    prisma.merchantTransaction.updateMany({
+      where: { id: { in: txnIds } },
+      data: {
+        settled: true,
+        settledAt: now,
+        settlementId,
+      },
+    }),
+    prisma.settlement.update({
+      where: { id: settlementId },
+      data: {
+        status: "SUCCESS",
+        processedAt: now,
+      },
+    }),
+  ])
+}
+
 export async function POST(req: Request) {
   const cronSecret = process.env.CRON_SECRET
   if (process.env.NODE_ENV === "production") {
@@ -49,7 +74,7 @@ export async function POST(req: Request) {
   const now = new Date()
   const T_PLUS_2 = new Date(now)
   T_PLUS_2.setDate(T_PLUS_2.getDate() - 2)
-  const inFlightCutoff = new Date(now.getTime() - ZOMBIE_SETTLEMENT_MS)
+  const reconcileCutoff = new Date(now.getTime() - ZOMBIE_SETTLEMENT_MS)
 
   let lockAcquired = false
 
@@ -98,37 +123,73 @@ export async function POST(req: Request) {
     let processed = 0
     let skipped = 0
     let failed = 0
+    let reconciled = 0
 
     for (const merchantIdStr in grouped) {
-      const merchantId = Number(merchantIdStr)
-      const txns = grouped[merchantId]
+      const merchantProfileId = Number(merchantIdStr)
+      const txns = grouped[merchantProfileId]
       const amount = txns.reduce((sum, t) => sum + t.amount, 0)
+      const txnIds = txns.map((t) => t.id)
 
-      const inFlight = await prisma.settlement.findFirst({
+      const profile = await prisma.merchantProfile.findUnique({
+        where: { id: merchantProfileId },
+        select: { userId: true },
+      })
+      if (!profile) {
+        logger.warn("auto-settlement: merchant profile missing", {
+          merchantProfileId,
+        })
+        failed += 1
+        continue
+      }
+
+      const openProcessing = await prisma.settlement.findFirst({
         where: {
-          merchantId,
+          merchantId: merchantProfileId,
           status: "PROCESSING",
-          createdAt: { gte: inFlightCutoff },
         },
       })
-      if (inFlight) {
+      if (openProcessing) {
         skipped += 1
         continue
       }
 
-      const profile = await prisma.merchantProfile.findUnique({
-        where: { id: merchantId },
-        select: { userId: true },
+      const successNeedsLink = await prisma.settlement.findFirst({
+        where: {
+          merchantId: merchantProfileId,
+          status: "SUCCESS",
+          amount,
+          createdAt: { gte: reconcileCutoff },
+        },
+        orderBy: { id: "desc" },
       })
-      if (!profile) {
-        logger.warn("auto-settlement: merchant profile missing", { merchantId })
-        failed += 1
+
+      if (successNeedsLink) {
+        try {
+          await linkTransactionsToSettlement(successNeedsLink.id, txnIds, now)
+          reconciled += 1
+          processed += 1
+        } catch (error) {
+          logger.error("auto-settlement: reconcile SUCCESS settlement failed", {
+            settlementId: successNeedsLink.id,
+            error: String(error),
+          })
+          try {
+            await prisma.settlement.update({
+              where: { id: successNeedsLink.id },
+              data: { status: "FAILED" },
+            })
+          } catch {
+            // ignore
+          }
+          failed += 1
+        }
         continue
       }
 
       const settlement = await prisma.settlement.create({
         data: {
-          merchantId,
+          merchantId: merchantProfileId,
           amount,
           status: "PROCESSING",
           scheduledFor: T_PLUS_2,
@@ -147,28 +208,24 @@ export async function POST(req: Request) {
           throw new Error(`webhook ${resp.status}: ${body}`)
         }
 
-        await prisma.$transaction([
-          prisma.merchantTransaction.updateMany({
-            where: { id: { in: txns.map((t) => t.id) } },
-            data: {
-              settled: true,
-              settledAt: now,
-              settlementId: settlement.id,
-            },
-          }),
-          prisma.settlement.update({
+        try {
+          await linkTransactionsToSettlement(settlement.id, txnIds, now)
+          processed += 1
+        } catch (linkError) {
+          logger.error("auto-settlement: post-webhook link failed", {
+            merchantProfileId,
+            settlementId: settlement.id,
+            error: String(linkError),
+          })
+          await prisma.settlement.update({
             where: { id: settlement.id },
-            data: {
-              status: "SUCCESS",
-              processedAt: now,
-            },
-          }),
-        ])
-
-        processed += 1
+            data: { status: "FAILED" },
+          })
+          failed += 1
+        }
       } catch (error) {
         logger.error("auto-settlement: webhook failed for merchant", {
-          merchantId,
+          merchantProfileId,
           settlementId: settlement.id,
           error: String(error),
         })
@@ -193,6 +250,7 @@ export async function POST(req: Request) {
       message: "Auto-settlement completed",
       merchants: Object.keys(grouped).length,
       processed,
+      reconciled,
       skipped,
       failed,
     })

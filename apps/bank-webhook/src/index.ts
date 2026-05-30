@@ -127,6 +127,8 @@ app.post("/hdfcWebHook", jsonParser, limiter, requireBankWebhookSignature, async
 
         const creditAmount = onRamp.amount;
 
+        await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${userId} FOR UPDATE`;
+
         await tx.balance.update({
           where: { userId },
           data: { amount: { increment: creditAmount } },
@@ -311,56 +313,76 @@ app.post("/merchantWebHook", jsonParser, limiter, requireBankWebhookSignature, a
     return res.status(400).json({ msg: "missing payload" });
   }
 
-  const txn = await db.merchantTransaction.findUnique({
-    where: { ref: token },
-  });
-
-  if (!txn) {
-    return res.status(404).json({ msg: "unknown transaction" });
-  }
-
-  if (txn.status === "SUCCESS") {
-    return res.status(200).json({ msg: "already captured" });
-  }
-
-  if (txn.status === "FAILED") {
-    return res.status(400).json({ msg: "transaction failed" });
-  }
-
-  const amountPaisa = txn.amount;
-  const customerId = txn.customerId;
-
   try {
-    await db.$transaction(
-      [
-        db.balance.update({
+    const outcome = await db.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "MerchantTransaction" WHERE ref = ${token} FOR UPDATE`;
+
+        const txn = await tx.merchantTransaction.findUnique({ where: { ref: token } });
+        if (!txn) {
+          return { kind: "not_found" as const };
+        }
+
+        if (txn.status === "SUCCESS") {
+          return {
+            kind: "already_success" as const,
+            amountPaisa: txn.amount,
+            customerId: txn.customerId,
+          };
+        }
+        if (txn.status === "FAILED") {
+          return { kind: "already_failed" as const };
+        }
+
+        const amountPaisa = txn.amount;
+        const customerId = txn.customerId;
+
+        await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${merchantUserId} FOR UPDATE`;
+
+        await tx.balance.update({
           where: { userId: merchantUserId },
-          data: {
-            amount: { increment: amountPaisa },
-          },
-        }),
-        db.merchantTransaction.update({
+          data: { amount: { increment: amountPaisa } },
+        });
+        await tx.merchantTransaction.update({
           where: { ref: token },
           data: { status: "SUCCESS" },
-        }),
-      ],
+        });
+
+        return { kind: "processed" as const, amountPaisa, customerId };
+      },
       { maxWait: 10_000, timeout: 20_000 },
     );
 
-    await publishEvent("web-app-channel", {
-      type: "merchantPaymentSuccess",
-      customerId,
-      amount: amountPaisa,
-      token,
-      merchantId: merchantUserId,
-    });
+    if (outcome.kind === "not_found") {
+      return res.status(404).json({ msg: "unknown transaction" });
+    }
+    if (outcome.kind === "already_failed") {
+      return res.status(400).json({ msg: "transaction failed" });
+    }
+    if (outcome.kind === "already_success" || outcome.kind === "processed") {
+      await publishEvent("web-app-channel", {
+        type: "merchantPaymentSuccess",
+        customerId: outcome.customerId,
+        amount: outcome.amountPaisa,
+        token,
+        merchantId: merchantUserId,
+      });
+      return res.status(200).json({
+        msg: outcome.kind === "already_success" ? "already captured" : "captured",
+      });
+    }
 
-    return res.status(200).json({ msg: "captured" });
+    return res.status(500).json({ msg: "transaction failed" });
   } catch (error) {
     logger.error("merchantWebHook failed", { error });
 
     try {
-      await compensateMerchantWebhookFailure(token, customerId, amountPaisa);
+      const txn = await db.merchantTransaction.findUnique({ where: { ref: token } });
+      await compensateMerchantWebhookFailure(
+        token,
+        txn?.customerId ?? null,
+        txn?.amount ?? 0,
+      );
     } catch (compError) {
       logger.error("merchantWebHook compensation failed", { compError });
     }
@@ -384,33 +406,76 @@ app.post(
     }
 
     try {
-      await db.$transaction(
-        [
-          db.balance.update({
+      const outcome = await db.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Settlement" WHERE id = ${settlementId} FOR UPDATE`;
+
+          const settlement = await tx.settlement.findUnique({
+            where: { id: settlementId },
+          });
+
+          if (!settlement) {
+            return { kind: "invalid" as const };
+          }
+
+          const profile = await tx.merchantProfile.findUnique({
+            where: { id: settlement.merchantId },
+            select: { userId: true },
+          });
+          if (!profile || profile.userId !== merchantId) {
+            return { kind: "invalid" as const };
+          }
+
+          if (settlement.status === "SUCCESS") {
+            return { kind: "already_success" as const, amount: settlement.amount };
+          }
+          if (settlement.status === "FAILED") {
+            return { kind: "already_failed" as const };
+          }
+          if (settlement.status !== "PROCESSING") {
+            return { kind: "invalid" as const };
+          }
+
+          const debitAmount = settlement.amount;
+
+          await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${merchantId} FOR UPDATE`;
+
+          await tx.balance.update({
             where: { userId: merchantId },
-            data: {
-              amount: { decrement: amount },
-            },
-          }),
-          db.settlement.update({
+            data: { amount: { decrement: debitAmount } },
+          });
+          await tx.settlement.update({
             where: { id: settlementId },
             data: {
               status: "SUCCESS",
               processedAt: new Date(),
             },
-          }),
-        ],
+          });
+
+          return { kind: "processed" as const, amount: debitAmount };
+        },
         { maxWait: 10_000, timeout: 20_000 },
       );
 
-      await publishEvent("web-app-channel", {
-        type: "merchantSettlementSuccess",
-        merchantId,
-        amount,
-        settlementId,
-      });
+      if (outcome.kind === "invalid") {
+        return res.status(400).json({ msg: "invalid settlement" });
+      }
+      if (outcome.kind === "already_failed") {
+        return res.status(400).json({ msg: "settlement already failed" });
+      }
 
-      return res.status(200).json({ msg: "settlement processed" });
+      if (outcome.kind === "processed") {
+        await publishEvent("web-app-channel", {
+          type: "merchantSettlementSuccess",
+          merchantId,
+          amount: outcome.amount,
+          settlementId,
+        });
+      }
+
+      return res.status(200).json({
+        msg: outcome.kind === "already_success" ? "already processed" : "settlement processed",
+      });
     } catch (error) {
       logger.error("merchantSettlementWebHook error", { error });
 

@@ -84,12 +84,22 @@ export async function POST(req: Request) {
         throw new Error("NO_MERCHANT");
       }
 
+      const customerId = m.customerId;
+      const merchantUserId = profile.userId;
+      const [lockFirst, lockSecond] =
+        customerId < merchantUserId
+          ? [customerId, merchantUserId]
+          : [merchantUserId, customerId];
+
+      await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${lockFirst} FOR UPDATE`;
+      await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${lockSecond} FOR UPDATE`;
+
       await tx.balance.update({
-        where: { userId: m.customerId },
+        where: { userId: customerId },
         data: { amount: { increment: m.amount } },
       });
       await tx.balance.update({
-        where: { userId: profile.userId },
+        where: { userId: merchantUserId },
         data: { amount: { decrement: m.amount } },
       });
 

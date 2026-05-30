@@ -23,7 +23,7 @@ export const SendMoneyCard = () => {
     setLoading(true)
     showToast("info", "Processing your transaction...")
 
-    const response = await p2pTransfer(number, Number(amount) * 100)
+    const response = await p2pTransfer(number, Number(amount))
     setLoading(false)
 
     if (response.success) {

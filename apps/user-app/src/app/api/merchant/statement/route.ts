@@ -10,6 +10,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../../../lib/auth"
 import prisma from "@repo/db"
 import { generateMerchantStatementPDF } from "../../../lib/pdf/merchantStatement"
+import { paisaToPkr } from "../../../lib/money"
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     const txnRows = transactions.map(t => ({
       date:    t.createdAt.toISOString().split("T")[0],
-      amount:  t.amount,
+      amount:  paisaToPkr(t.amount),
       method:  t.paymentMethod,
       settled: t.settled,
     }))
@@ -75,7 +76,12 @@ export async function GET(req: NextRequest) {
       merchantId:   String(merchant.userId),
       periodLabel,
       transactions: txnRows,
-      summary: { total, settled, pending, count: transactions.length },
+      summary: {
+        total: paisaToPkr(total),
+        settled: paisaToPkr(settled),
+        pending: paisaToPkr(pending),
+        count: transactions.length,
+      },
     })
 
     const filename = `pakpay-statement-${periodLabel.replace(/\s+/g, "-").toLowerCase()}.pdf`

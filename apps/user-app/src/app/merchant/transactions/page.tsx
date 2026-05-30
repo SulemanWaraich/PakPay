@@ -65,7 +65,7 @@ export default function MerchantTransactionsPage() {
       ["ID", "Amount", "Status", "Payment Method", "Customer", "Reference", "Date"],
       ...payments.map((p) => [
         p.id,
-        p.amount / 100,
+        p.amount,
         p.status,
         p.paymentMethod,
         p.customer?.number ?? "N/A",
@@ -135,7 +135,7 @@ export default function MerchantTransactionsPage() {
           <div key={tx.id} className="flex justify-between items-center py-3 border-b last:border-none">
             <div>
               <p className="font-medium">
-                ₹{(tx.amount / 100).toFixed(2)}
+                PKR {tx.amount.toFixed(2)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {tx.paymentMethod} • {format(new Date(tx.createdAt), "PPp")}
@@ -174,7 +174,7 @@ export default function MerchantTransactionsPage() {
         {settlements.map((s) => (
           <div key={s.id} className="flex justify-between py-3 border-b last:border-none">
             <div>
-              <p className="font-medium">Settlement ₹{(s.amount / 100).toFixed(2)}</p>
+              <p className="font-medium">Settlement PKR {s.amount.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground">
                 Created: {format(new Date(s.createdAt), "PPp")}
               </p>

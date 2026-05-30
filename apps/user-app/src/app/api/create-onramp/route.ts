@@ -7,6 +7,7 @@ import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { createOnRampSchema } from "../../lib/validation/schemas";
 import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
+import { pkrToPaisa, withAmountInPkr } from "../../lib/money";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -34,13 +35,14 @@ export async function POST(req: Request) {
     return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
   }
 
-  const { amount, bank } = parsed.data;
+  const { amount: amountPkr, bank } = parsed.data;
+  const amountPaisa = pkrToPaisa(amountPkr);
 
   try {
     const token = nanoid(16);
     const transaction = await prisma.onRampTransaction.create({
       data: {
-        amount,
+        amount: amountPaisa,
         provider: bank,
         status: "Processing",
         startTime: new Date(),
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, transaction });
+    return NextResponse.json({ success: true, transaction: withAmountInPkr(transaction) });
   } catch (error) {
     console.error("create-onramp error:", error);
     return jsonError("Failed to create onramp", 500);

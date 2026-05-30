@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
+import { paisaToPkr } from "../../lib/money";
 
 export async function GET() {
   const userSession = await getServerSession(authOptions);
@@ -40,7 +41,7 @@ if (!userSession || !userSession.user) {
       const d = new Date(t.startTime);
       const week = Math.ceil(d.getDate() / 7);
       if (week >= 1 && week <= 4) {
-        spendingData[week - 1].offRamp += t.amount;
+        spendingData[week - 1].offRamp += paisaToPkr(t.amount);
       }
     });
 
@@ -49,7 +50,7 @@ if (!userSession || !userSession.user) {
       const d = new Date(t.timestamp);
       const week = Math.ceil(d.getDate() / 7);
       if (week >= 1 && week <= 4) {
-        spendingData[week - 1].p2p += t.amount;
+        spendingData[week - 1].p2p += paisaToPkr(t.amount);
       }
     });
 
@@ -58,7 +59,7 @@ if (!userSession || !userSession.user) {
       const d = new Date(t.startTime);
       const week = Math.ceil(d.getDate() / 7);
       if (week >= 1 && week <= 4) {
-        spendingData[week - 1].onRamp += t.amount;
+        spendingData[week - 1].onRamp += paisaToPkr(t.amount);
       }
     });
 

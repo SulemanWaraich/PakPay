@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   try {
     await postSignedBankWebhook("withdrawWebHook", {
-      amount: Number(body.amount ?? txn.amount),
+      amount: txn.amount,
       token,
       user_identifier: userId,
     });

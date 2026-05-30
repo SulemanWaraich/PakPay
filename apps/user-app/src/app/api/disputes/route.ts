@@ -3,6 +3,7 @@ import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { z } from "zod";
+import { withAmountInPkr } from "../../lib/money";
 
 const createSchema = z.object({
   merchantTransactionId: z.number().int().positive(),
@@ -25,7 +26,12 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(rows);
+  return NextResponse.json(
+    rows.map((r) => ({
+      ...r,
+      MerchantTransaction: withAmountInPkr(r.MerchantTransaction),
+    })),
+  );
 }
 
 export async function POST(req: Request) {

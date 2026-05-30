@@ -9,6 +9,7 @@ import { SEED_CREDENTIALS } from "./seed.credentials.local.js";
 const prisma = new PrismaClient();
 
 async function main() {
+  // All monetary `amount` fields are in PAISA (1 PKR = 100 paisa). e.g. 15000 paisa = PKR 150.00
   console.log("🌱 Seeding database...");
 
   const { admin, suleman: sulemanCreds, usama: usamaCreds } = SEED_CREDENTIALS;

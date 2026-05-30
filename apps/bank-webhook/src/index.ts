@@ -57,6 +57,30 @@ function requireBankWebhookSignature(
   next();
 }
 
+/** Refund customer and mark merchant txn FAILED (idempotent while PENDING). Amounts in paisa. */
+async function compensateMerchantWebhookFailure(
+  ref: string,
+  customerId: number | null,
+  amountPaisa: number,
+) {
+  await db.$transaction(async (tx) => {
+    const txn = await tx.merchantTransaction.findUnique({ where: { ref } });
+    if (!txn || txn.status !== "PENDING") {
+      return;
+    }
+    if (customerId != null) {
+      await tx.balance.update({
+        where: { userId: customerId },
+        data: { amount: { increment: amountPaisa } },
+      });
+    }
+    await tx.merchantTransaction.update({
+      where: { ref },
+      data: { status: "FAILED" },
+    });
+  });
+}
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true, service: "bank-webhook" });
 });
@@ -65,26 +89,26 @@ app.post("/hdfcWebHook", jsonParser, limiter, requireBankWebhookSignature, async
   const paymentinformation = {
     token: req.body.token,
     userId: req.body.userId,
-    amount: req.body.amount,
+    amount: Number(req.body.amount),
   };
   logger.info("onramp webhook", { ...paymentinformation });
 
   try {
     await db.$transaction(
       [
-      db.balance.update({
-        where: { userId: paymentinformation.userId },
-        data: {
-          amount: {
-            increment: Number(paymentinformation.amount),
+        db.balance.update({
+          where: { userId: paymentinformation.userId },
+          data: {
+            amount: {
+              increment: paymentinformation.amount,
+            },
           },
-        },
-      }),
-      db.onRampTransaction.update({
-        where: { token: paymentinformation.token },
-        data: { status: "Success" },
-      }),
-    ],
+        }),
+        db.onRampTransaction.update({
+          where: { token: paymentinformation.token },
+          data: { status: "Success" },
+        }),
+      ],
       { maxWait: 10_000, timeout: 20_000 },
     );
 
@@ -114,17 +138,17 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
   try {
     await db.$transaction(
       [
-      db.balance.update({
-        where: { userId },
-        data: {
-          amount: { decrement: amount },
-        },
-      }),
-      db.offRampTransaction.update({
-        where: { token },
-        data: { status: "Success" },
-      }),
-    ],
+        db.balance.update({
+          where: { userId },
+          data: {
+            amount: { decrement: amount },
+          },
+        }),
+        db.offRampTransaction.update({
+          where: { token },
+          data: { status: "Success" },
+        }),
+      ],
       { maxWait: 10_000, timeout: 20_000 },
     );
 
@@ -153,53 +177,68 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
 });
 
 app.post("/merchantWebHook", jsonParser, limiter, requireBankWebhookSignature, async (req, res) => {
-  const paymentinformation = {
-    token: req.body.token,
-    merchantId: req.body.merchantId,
-    amount: req.body.amount,
-    customerId: req.body.customerId,
-  };
+  const token = String(req.body.token ?? "");
+  const merchantUserId = Number(req.body.merchantId);
+
+  if (!token || !merchantUserId) {
+    return res.status(400).json({ msg: "missing payload" });
+  }
+
+  const txn = await db.merchantTransaction.findUnique({
+    where: { ref: token },
+  });
+
+  if (!txn) {
+    return res.status(404).json({ msg: "unknown transaction" });
+  }
+
+  if (txn.status === "SUCCESS") {
+    return res.status(200).json({ msg: "already captured" });
+  }
+
+  if (txn.status === "FAILED") {
+    return res.status(400).json({ msg: "transaction failed" });
+  }
+
+  const amountPaisa = txn.amount;
+  const customerId = txn.customerId;
 
   try {
     await db.$transaction(
       [
-      db.balance.update({
-        where: { userId: Number(paymentinformation.merchantId) },
-        data: {
-          amount: {
-            increment: paymentinformation.amount,
+        db.balance.update({
+          where: { userId: merchantUserId },
+          data: {
+            amount: { increment: amountPaisa },
           },
-        },
-      }),
-      db.balance.update({
-        where: { userId: Number(paymentinformation.customerId) },
-        data: {
-          amount: {
-            decrement: paymentinformation.amount,
-          },
-        },
-      }),
-    ],
+        }),
+        db.merchantTransaction.update({
+          where: { ref: token },
+          data: { status: "SUCCESS" },
+        }),
+      ],
       { maxWait: 10_000, timeout: 20_000 },
     );
 
-    await db.merchantTransaction.update({
-      where: { ref: paymentinformation.token },
-      data: { status: "SUCCESS" },
-    });
-
     await publishEvent("web-app-channel", {
       type: "merchantPaymentSuccess",
-      customerId: paymentinformation.customerId,
-      amount: paymentinformation.amount,
-      token: paymentinformation.token,
-      merchantId: paymentinformation.merchantId,
+      customerId,
+      amount: amountPaisa,
+      token,
+      merchantId: merchantUserId,
     });
 
     return res.status(200).json({ msg: "captured" });
   } catch (error) {
     logger.error("merchantWebHook failed", { error });
-    res.status(411).json({ msg: "transaction failed" });
+
+    try {
+      await compensateMerchantWebhookFailure(token, customerId, amountPaisa);
+    } catch (compError) {
+      logger.error("merchantWebHook compensation failed", { compError });
+    }
+
+    return res.status(500).json({ msg: "transaction failed" });
   }
 });
 
@@ -219,21 +258,21 @@ app.post(
 
     try {
       await db.$transaction(
-      [
-        db.balance.update({
-          where: { userId: merchantId },
-          data: {
-            amount: { decrement: amount },
-          },
-        }),
-        db.settlement.update({
-          where: { id: settlementId },
-          data: {
-            status: "SUCCESS",
-            processedAt: new Date(),
-          },
-        }),
-      ],
+        [
+          db.balance.update({
+            where: { userId: merchantId },
+            data: {
+              amount: { decrement: amount },
+            },
+          }),
+          db.settlement.update({
+            where: { id: settlementId },
+            data: {
+              status: "SUCCESS",
+              processedAt: new Date(),
+            },
+          }),
+        ],
         { maxWait: 10_000, timeout: 20_000 },
       );
 

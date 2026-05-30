@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   try {
     await postSignedBankWebhook("hdfcWebHook", {
-      amount: Number(body.amount ?? txn.amount),
+      amount: txn.amount,
       token,
       userId,
     });

@@ -7,6 +7,7 @@ import { authOptions } from "../../lib/auth"
 import { formatDistanceToNow } from "date-fns";
 import { AppbarClient } from "../../../components/AppbarClient"
 import { redirect } from "next/navigation"
+import { paisaToPkr } from "../../lib/money"
 
 export default async function DashboardPage() {
     const userSession = await getServerSession(authOptions)
@@ -99,7 +100,7 @@ export default async function DashboardPage() {
               <Card className="lg:col-span-1 bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-lg text-white">
                 <CardContent className="p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-green-100 mb-1">Portfolio Value</p>
-                  <p className="sm:text-3xl text-xl font-bold mb-1">${balance?.amount ?? 0}</p>
+                  <p className="sm:text-3xl text-xl font-bold mb-1">PKR {paisaToPkr(balance?.amount ?? 0).toLocaleString()}</p>
                   <span className="text-xs text-green-100">Total Balance</span>
                 </CardContent>
               </Card>
@@ -130,7 +131,7 @@ export default async function DashboardPage() {
                         <div className="w-4 h-4 bg-blue-500 rounded"></div>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-800">${weeklySpending.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-gray-800">PKR {paisaToPkr(weeklySpending).toLocaleString()}</p>
                         <p className="text-xs text-gray-600">This Week</p>
                       </div>
                     </div>
@@ -187,7 +188,7 @@ export default async function DashboardPage() {
                             activity?.amount?.toString() ? "text-green-600" : "text-gray-700"
                           }`}
                         >
-                          {activity?.amount || 0}
+                          {activity?.amount != null ? paisaToPkr(activity.amount).toLocaleString() : 0}
                         </span>
                       </div>
                       <h3 className="font-medium text-sm text-gray-800">{activity.type}</h3>

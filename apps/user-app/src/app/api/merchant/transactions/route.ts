@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import db from "@repo/db";
+import { mapAmountsToPkr } from "../../../lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -73,8 +74,8 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      payments,
-      settlements,
+      payments: mapAmountsToPkr(payments),
+      settlements: mapAmountsToPkr(settlements),
     });
   } catch (error) {
     console.error("❌ Error in /api/merchant/transactions:", error);

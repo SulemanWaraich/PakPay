@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
+import { mapAmountsToPkr, withAmountInPkr } from "../../../lib/money";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -43,10 +44,13 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
-    onRamp,
-    offRamp,
-    p2p,
-    merchant,
-    disputes,
+    onRamp: mapAmountsToPkr(onRamp),
+    offRamp: mapAmountsToPkr(offRamp),
+    p2p: mapAmountsToPkr(p2p),
+    merchant: mapAmountsToPkr(merchant),
+    disputes: disputes.map((d) => ({
+      ...d,
+      MerchantTransaction: withAmountInPkr(d.MerchantTransaction),
+    })),
   });
 }

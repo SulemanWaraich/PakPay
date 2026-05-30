@@ -7,7 +7,7 @@ import { NextResponse } from "next/server"
 
 export const CreateOnRampTransaction = async (amount: any, provider: any) => {
   const session = await getServerSession(authOptions);
-  if(!session.user){
+  if(!session?.user){
     return {
       msg: "user not logged in"
     }

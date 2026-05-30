@@ -1,30 +1,30 @@
 import { PrismaClient } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 
-// ye use krna hai jb development khatam ho jaye
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    // Use Accelerate at runtime
     datasourceUrl: process.env.PRISMA_ACCELERATE_URL ?? process.env.DATABASE_URL,
   }).$extends(withAccelerate())
-  
 }
 
-// const prismaClientSingleton = () => {
-//   return new PrismaClient({
-//     // Use Accelerate at runtime
-//     datasourceUrl: process.env.DATABASE_URL,
-//   })
-  
-// }
+// Plain client for $transaction usage (Accelerate doesn't support interactive transactions anyway)
+const plainClientSingleton = () => {
+  return new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL,
+  })
+}
 
 declare global {
-  // avoid multiple instances in dev
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
+  var prismaPlainGlobal: undefined | ReturnType<typeof plainClientSingleton>
 }
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
+export const prismaPlain = globalThis.prismaPlainGlobal ?? plainClientSingleton()
 
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaGlobal = prisma
+  globalThis.prismaPlainGlobal = prismaPlain
+}
 
 export default prisma

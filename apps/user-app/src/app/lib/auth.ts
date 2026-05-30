@@ -1,15 +1,19 @@
 import Credentials from "next-auth/providers/credentials";
 import db from "@repo/db";
 import { validateCredentials } from "./credentialsAuth";
+import type { ValidatedUser } from "./credentialsAuth";
 import { authSecret } from "./authSecret";
+import type { AuthOptions } from "next-auth";
+import type { Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 
 const useSecureCookies =
   process.env.NEXTAUTH_URL?.startsWith("https://") === true;
 
-const SESSION_MAX_AGE = 8 * 60 * 60; // 8 hours
-const SESSION_UPDATE_AGE = 60 * 60; // reissue JWT every hour of activity
+const SESSION_MAX_AGE = 8 * 60 * 60;
+const SESSION_UPDATE_AGE = 60 * 60;
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   secret: authSecret(),
   useSecureCookies,
   session: {
@@ -72,10 +76,12 @@ export const authOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }: { token: Record<string, unknown>; user?: { role?: string; sessionVersion?: number } }) {
+    async jwt({ token, user }: { token: JWT; user?: unknown }) {
       if (user) {
-        token.role = user.role;
-        token.sessionVersion = user.sessionVersion ?? 0;
+        const u = user as ValidatedUser;
+        token.role = u.role;
+        token.sessionVersion = u.sessionVersion ?? 0;
+        token.merchantId = u.merchantId ?? null;
       }
 
       const sub = token.sub;
@@ -106,7 +112,7 @@ export const authOptions = {
       session,
     }: {
       token: Record<string, unknown>;
-      session: { user?: { id?: string; role?: string } };
+      session: Session;
     }) {
       if (token.sessionInvalid) {
         throw new Error("Session expired. Please sign in again.");
@@ -115,7 +121,9 @@ export const authOptions = {
       if (session.user) {
         session.user.id = String(token.sub);
         session.user.role = token.role as "USER" | "MERCHANT" | "ADMIN";
+        session.user.merchantId = token.merchantId as number | null | undefined;
       }
+
       return session;
     },
   },

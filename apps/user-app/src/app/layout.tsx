@@ -63,7 +63,7 @@ export default async function RootLayout({
                <AnalyticsProvider />   
             </Suspense>
             <Navbar />
-            <NotificationProvider userId={session?.user?.id} merchantId={session?.user?.role === "MERCHANT" ? session?.user?.merchantId : undefined} >
+            <NotificationProvider userId={session?.user?.id ? Number(session.user.id) : undefined}  merchantId={session?.user?.merchantId ?? undefined} >
           {children}
           </NotificationProvider>
           <Footer2 />

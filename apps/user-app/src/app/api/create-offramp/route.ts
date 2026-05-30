@@ -7,6 +7,7 @@ import { rateLimitAllow } from "../../lib/rateLimitRedis";
 import { getClientIp } from "../../lib/clientIp";
 import { createOffRampSchema } from "../../lib/validation/schemas";
 import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
+import { pkrToPaisa, withAmountInPkr } from "../../lib/money";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -34,15 +35,16 @@ export async function POST(req: Request) {
     return jsonError(zodErrorMessage(parsed.error.flatten()), 400);
   }
 
-  const { amount, bank, accountHolderName, bankName, accountNumber, branch } =
+  const { amount: amountPkr, bank, accountHolderName, bankName, accountNumber, branch } =
     parsed.data;
+  const amountPaisa = pkrToPaisa(amountPkr);
   const legacyBank = bank ?? bankName;
 
   try {
     const token = nanoid(16);
     const transaction = await prisma.offRampTransaction.create({
       data: {
-        amount,
+        amount: amountPaisa,
         bankAccount: legacyBank,
         accountHolderName,
         bankName,
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, transaction });
+    return NextResponse.json({ success: true, transaction: withAmountInPkr(transaction) });
   } catch (error) {
     console.error("create-offramp error:", error);
     return jsonError("Failed to create offramp", 500);

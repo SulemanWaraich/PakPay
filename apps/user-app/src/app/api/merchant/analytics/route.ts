@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
+import { paisaToPkr } from "../../../lib/money";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -47,9 +48,15 @@ export async function GET() {
     .map(([customerId, amount]) => ({ customerId, amount }));
 
   return NextResponse.json({
-    totalRevenue,
+    totalRevenue: paisaToPkr(totalRevenue),
     transactionCount: txns.length,
-    daily: Array.from(byDay.entries()).map(([date, amount]) => ({ date, amount })),
-    topCustomers,
+    daily: Array.from(byDay.entries()).map(([date, amount]) => ({
+      date,
+      amount: paisaToPkr(amount),
+    })),
+    topCustomers: topCustomers.map(({ customerId, amount }) => ({
+      customerId,
+      amount: paisaToPkr(amount),
+    })),
   });
 }

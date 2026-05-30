@@ -11,6 +11,7 @@ import { authOptions } from "../../lib/auth"
 import FilterForm from "../../../components/FilterForm"
 import ExportButton from "../../../components/ExportButton"
 import { redirect } from "next/navigation"
+import { paisaToPkr } from "../../lib/money"
 
 interface SearchParams {
   type?: string
@@ -89,7 +90,7 @@ export default async function TransactionsPage({
         type: "Deposit (On-Ramp)",
         date: new Date(tx.startTime).toLocaleDateString(),
         time: new Date(tx.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        amount: tx.amount,
+        amount: paisaToPkr(tx.amount),
         currency: tx.provider || "Bank",
         status: tx.status || "Processing",
         isPositive: true,
@@ -101,7 +102,7 @@ export default async function TransactionsPage({
         type: "Withdrawal (Off-Ramp)",
         date: new Date(tx.startTime).toLocaleDateString(),
         time: new Date(tx.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        amount: tx.amount,
+        amount: paisaToPkr(tx.amount),
         currency: tx.bankAccount || "Bank",
         status: tx.status || "Processing",
         isPositive: false,
@@ -115,7 +116,7 @@ export default async function TransactionsPage({
           type: isSender ? "P2P Sent" : "P2P Received",
           date: new Date(tx.timestamp).toLocaleDateString(),
           time: new Date(tx.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          amount: tx.amount,
+          amount: paisaToPkr(tx.amount),
           currency: "PKR",
           status: "Completed",
           isPositive: !isSender, // Sent = negative, Received = positive

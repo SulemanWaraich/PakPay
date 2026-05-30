@@ -1,5 +1,6 @@
 "use server"
 import prisma from "@repo/db"
+import { pkrToPaisa } from "../money"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth"
 import { NextResponse } from "next/server"
@@ -17,7 +18,7 @@ export const CreateOnRampTransaction = async (amount: any, provider: any) => {
       userId: Number(session?.user?.id),
       token: token,
       startTime: new Date(),
-      amount: amount,
+      amount: pkrToPaisa(Number(amount)),
       provider: provider,
       status: "Processing"
   }})

@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 import MerchantDashboardClientWrapper from "../../../components/MerchantDashboardClientWrapper"
 import TopCustomers from "../../../components/TopCustomers"
+import { paisaToPkr } from "../../lib/money"
 
 export default async function MerchantDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -55,7 +56,7 @@ export default async function MerchantDashboardPage() {
 
     const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({
       date,
-      revenue,
+      revenue: paisaToPkr(revenue),
     }))
 
     // 📆 Monthly revenue
@@ -114,7 +115,13 @@ export default async function MerchantDashboardPage() {
     }
 
     const topCustomers = Object.entries(customerMap)
-      .map(([id, data]) => ({ id, ...data }))
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        total: paisaToPkr(data.total),
+        count: data.count,
+        lastSeen: data.lastSeen,
+      }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5)
 
@@ -140,7 +147,7 @@ export default async function MerchantDashboardPage() {
               <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
                 <CardContent className="p-4">
                   <p className="text-xs uppercase">Available Balance</p>
-                  <p className="text-3xl font-bold">PKR {availableBalance.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">PKR {paisaToPkr(availableBalance).toLocaleString()}</p>
                   <p className="text-xs">Settled to bank</p>
                 </CardContent>
               </Card>
@@ -148,21 +155,21 @@ export default async function MerchantDashboardPage() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-gray-500">This Month</p>
-                  <p className="text-2xl font-bold">PKR {monthlyRevenue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">PKR {paisaToPkr(monthlyRevenue).toLocaleString()}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-gray-500">This Week</p>
-                  <p className="text-2xl font-bold">PKR {weeklyRevenue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">PKR {paisaToPkr(weeklyRevenue).toLocaleString()}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-gray-500">Pending Settlement</p>
-                  <p className="text-2xl font-bold text-orange-600">PKR {pendingSettlement.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-orange-600">PKR {paisaToPkr(pendingSettlement).toLocaleString()}</p>
                   <p className="text-xs">Auto off-ramp in T+2</p>
                 </CardContent>
               </Card>
@@ -195,7 +202,7 @@ export default async function MerchantDashboardPage() {
                   {Object.entries(revenueByMethod).map(([method, amount]) => (
                     <li key={method} className="flex justify-between">
                       <span>{method}</span>
-                      <span>PKR {amount.toLocaleString()}</span>
+                      <span>PKR {paisaToPkr(amount).toLocaleString()}</span>
                     </li>
                   ))}
                 </ul>
@@ -209,7 +216,7 @@ export default async function MerchantDashboardPage() {
                 {recentTransactions.map(txn => (
                   <Card key={txn.id}>
                     <CardContent className="p-3">
-                      <p className="font-medium">PKR {txn.amount}</p>
+                      <p className="font-medium">PKR {paisaToPkr(txn.amount).toLocaleString()}</p>
                       <p className="text-xs text-gray-500">{txn.paymentMethod}</p>
                       <p className="text-xs text-gray-400">
                         {formatDistanceToNow(txn.createdAt, { addSuffix: true })}

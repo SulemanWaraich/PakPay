@@ -13,24 +13,18 @@ export default function MerchantNotificationListener({ merchantId }: { merchantI
     });
 
     socket.on("settlementEvent", (data) => {
-      console.log("🔥 LIVE event:", data);
-
-      // We only show notification for settlement events
       if (data.type === "merchantSettlementSuccess" && Number(data.merchantId) === merchantId) {
         showToast("success", `Your settlement of PKR ${paisaToPkr(Number(data.amount)).toFixed(2)} has been processed!`);
       }
     });
 
     socket.on("paymentEvent", (data) => {
-          console.log("🔥 FRONTEND RECEIVED paymentEvent:", data);
-    if (Number(data.merchantId) === merchantId) {
-        showToast("success", `🟢 New payment received: PKR ${paisaToPkr(Number(data.amount)).toFixed(2)}`);
-    }
-    });
-
-    socket.on("bankWebhookEvent", (data) => {
-          console.log("🔥 FRONTEND RECEIVED bankWebhookEvent:", data);
-         showToast(`🟢 New payment received: PKR ${paisaToPkr(Number(data.amount)).toFixed(2)}`, {duration: 2000});
+      if (Number(data.merchantId) === merchantId) {
+        showToast(
+          "success",
+          `New payment received: PKR ${paisaToPkr(Number(data.amount)).toFixed(2)}`,
+        );
+      }
     });
 
     return () => {

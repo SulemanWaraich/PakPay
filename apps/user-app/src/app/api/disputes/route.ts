@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { z } from "zod";
 import { withAmountInPkr } from "../../lib/money";
+import { Prisma } from "@prisma/client";
 
 const createSchema = z.object({
   merchantTransactionId: z.number().int().positive(),
@@ -80,10 +81,20 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json(dispute, { status: 201 });
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "A dispute already exists for this transaction" },
+        { status: 409 },
+      );
+    }
+    console.error("disputes POST error:", error);
     return NextResponse.json(
-      { error: "Dispute already exists or could not be created" },
-      { status: 409 },
+      { error: "Could not create dispute" },
+      { status: 500 },
     );
   }
 }

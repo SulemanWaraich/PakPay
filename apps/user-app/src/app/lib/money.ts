@@ -15,7 +15,9 @@ export function paisaToPkr(paisa: number): number {
 
 /** Format paisa for UI labels (2 decimal PKR). */
 export function formatPkrFromPaisa(paisa: number): string {
-  return paisaToPkr(paisa).toLocaleString("en-PK", {
+  return paisaToPkr(paisa).toLocaleString("ur-PK", {
+    style: "currency",
+    currency: "PKR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

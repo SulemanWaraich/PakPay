@@ -14,6 +14,7 @@ declare module "next-auth" {
     name: string | null;
     email: string | null;
     role: "ADMIN" | "USER" | "MERCHANT";
+    sessionVersion: number;
   }
 }
 
@@ -21,5 +22,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: "ADMIN" | "USER" | "MERCHANT";
     sub: string;
+    sessionVersion?: number;
+    sessionInvalid?: boolean;
   }
 }

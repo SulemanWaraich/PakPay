@@ -12,6 +12,7 @@ import { redirect } from "next/navigation"
 import MerchantDashboardClientWrapper from "../../../components/MerchantDashboardClientWrapper"
 import TopCustomers from "../../../components/TopCustomers"
 import { paisaToPkr } from "../../lib/money"
+import { availableBalancePaisa } from "../../lib/balance"
 
 export default async function MerchantDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -46,7 +47,10 @@ export default async function MerchantDashboardPage() {
       }),
     ])
 
-    const availableBalance = balanceRow?.amount ?? 0
+    const availableBalance = availableBalancePaisa(
+      balanceRow?.amount ?? 0,
+      balanceRow?.locked ?? 0,
+    )
     const pendingSettlement = pendingSettlementResult._sum.amount ?? 0
 
     const transactions = await prisma.merchantTransaction.findMany({
@@ -156,7 +160,7 @@ export default async function MerchantDashboardPage() {
                 <CardContent className="p-4">
                   <p className="text-xs uppercase">Available Balance</p>
                   <p className="text-3xl font-bold">PKR {paisaToPkr(availableBalance).toLocaleString()}</p>
-                  <p className="text-xs">Withdrawable now (wallet ledger)</p>
+                  <p className="text-xs">Available to withdraw (after locks)</p>
                 </CardContent>
               </Card>
 

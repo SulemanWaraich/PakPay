@@ -10,6 +10,11 @@ import { getClientIp } from "../../lib/clientIp";
 import { AUTH_MESSAGES, jsonError, zodErrorMessage } from "../../lib/apiErrors";
 import { pkrToPaisa, withAmountInPkr } from "../../lib/money";
 import { compensateFailedMerchantPayment } from "../../lib/merchantPaymentCompensation";
+import {
+  finalizeCustomerMerchantPayment,
+  lockFundsForMerchantPayment,
+} from "../../lib/balanceLocks";
+import { availableBalancePaisa } from "../../lib/balance";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +101,7 @@ export async function POST(req: Request) {
           throw new Error("NO_BALANCE");
         }
 
-        if (customerBalance.amount < amountPaisa) {
+        if (availableBalancePaisa(customerBalance.amount, customerBalance.locked) < amountPaisa) {
           throw new Error("INSUFFICIENT");
         }
 
@@ -111,10 +116,7 @@ export async function POST(req: Request) {
           },
         });
 
-        await tx.balance.update({
-          where: { userId: customerId },
-          data: { amount: { decrement: amountPaisa } },
-        });
+        await lockFundsForMerchantPayment(tx, customerId, amountPaisa);
 
         return { kind: "created" as const, payment };
       });
@@ -174,6 +176,8 @@ export async function POST(req: Request) {
       await compensateFailedMerchantPayment(paymentRef, customerId, amountPaisa);
       return jsonError("Payment could not be completed. Your wallet has been refunded.", 502);
     }
+
+    await finalizeCustomerMerchantPayment(customerId, amountPaisa, paymentRef);
 
     return NextResponse.json({
       success: true,

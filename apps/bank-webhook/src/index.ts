@@ -57,7 +57,7 @@ function requireBankWebhookSignature(
   next();
 }
 
-/** Refund customer and mark merchant txn FAILED (idempotent while PENDING). Amounts in paisa. */
+/** Release customer lock and mark merchant txn FAILED (idempotent while PENDING). Amounts in paisa. */
 async function compensateMerchantWebhookFailure(
   ref: string,
   customerId: number | null,
@@ -69,10 +69,16 @@ async function compensateMerchantWebhookFailure(
       return;
     }
     if (customerId != null) {
-      await tx.balance.update({
-        where: { userId: customerId },
-        data: { amount: { increment: amountPaisa } },
-      });
+      const balance = await tx.balance.findUnique({ where: { userId: customerId } });
+      if (balance) {
+        const release = Math.min(balance.locked, amountPaisa);
+        if (release > 0) {
+          await tx.balance.update({
+            where: { userId: customerId },
+            data: { locked: { decrement: release } },
+          });
+        }
+      }
     }
     await tx.merchantTransaction.update({
       where: { ref },
@@ -146,35 +152,51 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
           return { kind: "not_processing" as const };
         }
 
+        const withdrawAmount = offRamp.amount;
+
         await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${userId} FOR UPDATE`;
 
         const balance = await tx.balance.findUnique({ where: { userId } });
-        if (!balance) {
+
+        const releaseLockAndFail = async () => {
+          if (balance) {
+            const release = Math.min(balance.locked, withdrawAmount);
+            if (release > 0) {
+              await tx.balance.update({
+                where: { userId },
+                data: { locked: { decrement: release } },
+              });
+            }
+          }
           await tx.offRampTransaction.update({
             where: { token },
             data: { status: "Failure" },
           });
+        };
+
+        if (!balance) {
+          await releaseLockAndFail();
           return { kind: "no_balance" as const };
         }
 
-        if (balance.amount < amount) {
-          await tx.offRampTransaction.update({
-            where: { token },
-            data: { status: "Failure" },
-          });
+        if (balance.locked < withdrawAmount) {
+          await releaseLockAndFail();
           return { kind: "insufficient" as const };
         }
 
         await tx.balance.update({
           where: { userId },
-          data: { amount: { decrement: amount } },
+          data: {
+            amount: { decrement: withdrawAmount },
+            locked: { decrement: withdrawAmount },
+          },
         });
         await tx.offRampTransaction.update({
           where: { token },
           data: { status: "Success" },
         });
 
-        return { kind: "ok" as const };
+        return { kind: "ok" as const, withdrawAmount };
       },
       { maxWait: 10_000, timeout: 20_000 },
     );
@@ -192,10 +214,13 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
       return res.status(400).json({ msg: "insufficient balance for withdrawal" });
     }
 
+    const settledAmount =
+      outcome.kind === "ok" ? outcome.withdrawAmount : amount;
+
     await publishEvent("web-app-channel", {
       type: "offRampSuccess",
       userId,
-      amount,
+      amount: settledAmount,
       token,
     });
 
@@ -204,9 +229,25 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
     logger.error("withdrawWebHook error", { error });
 
     try {
-      await db.offRampTransaction.update({
-        where: { token },
-        data: { status: "Failure" },
+      await db.$transaction(async (tx) => {
+        const offRamp = await tx.offRampTransaction.findUnique({ where: { token } });
+        if (!offRamp || offRamp.status !== "Processing") {
+          return;
+        }
+        const balance = await tx.balance.findUnique({ where: { userId } });
+        if (balance) {
+          const release = Math.min(balance.locked, offRamp.amount);
+          if (release > 0) {
+            await tx.balance.update({
+              where: { userId },
+              data: { locked: { decrement: release } },
+            });
+          }
+        }
+        await tx.offRampTransaction.update({
+          where: { token },
+          data: { status: "Failure" },
+        });
       });
     } catch {
       // ignore

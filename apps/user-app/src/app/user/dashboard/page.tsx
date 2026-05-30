@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { AppbarClient } from "../../../components/AppbarClient"
 import { redirect } from "next/navigation"
 import { paisaToPkr } from "../../lib/money"
+import { availableBalancePaisa, totalBalancePaisa } from "../../lib/balance"
 
 export default async function DashboardPage() {
     const userSession = await getServerSession(authOptions)
@@ -75,6 +76,10 @@ export default async function DashboardPage() {
   
     const balance = await prisma.balance.findFirst({ where: { userId: Number(userSession.user.id) } })
     const user = await prisma.user.findFirst({where: {id: Number(userSession.user.id)}})
+    const grossPaisa = balance?.amount ?? 0
+    const lockedPaisa = balance?.locked ?? 0
+    const availablePaisa = availableBalancePaisa(grossPaisa, lockedPaisa)
+    const totalPaisa = totalBalancePaisa(grossPaisa, lockedPaisa)
   
     // console.log(user?.name, balance?.amount)
   
@@ -99,9 +104,12 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
               <Card className="lg:col-span-1 bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-lg text-white">
                 <CardContent className="p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-green-100 mb-1">Portfolio Value</p>
-                  <p className="sm:text-3xl text-xl font-bold mb-1">PKR {paisaToPkr(balance?.amount ?? 0).toLocaleString()}</p>
-                  <span className="text-xs text-green-100">Total Balance</span>
+                  <p className="text-xs font-medium uppercase tracking-wide text-green-100 mb-1">Available Balance</p>
+                  <p className="sm:text-3xl text-xl font-bold mb-1">PKR {paisaToPkr(availablePaisa).toLocaleString()}</p>
+                  <span className="text-xs text-green-100">
+                    Total PKR {paisaToPkr(totalPaisa).toLocaleString()}
+                    {lockedPaisa > 0 ? ` · ${paisaToPkr(lockedPaisa).toLocaleString()} locked` : ""}
+                  </span>
                 </CardContent>
               </Card>
   

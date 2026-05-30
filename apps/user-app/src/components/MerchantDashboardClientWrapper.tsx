@@ -2,10 +2,19 @@
 
 import MerchantNotificationListener from "./MerchantNotificationListener";
 
-export default function MerchantDashboardClientWrapper({ merchantId }: { merchantId: number }) {
+export default function MerchantDashboardClientWrapper({
+  merchantUserId,
+  merchantProfileId,
+}: {
+  merchantUserId: number;
+  merchantProfileId: number;
+}) {
   return (
     <>
-      <MerchantNotificationListener merchantId={merchantId} />
+      <MerchantNotificationListener
+        merchantUserId={merchantUserId}
+        merchantProfileId={merchantProfileId}
+      />
     </>
   );
 }

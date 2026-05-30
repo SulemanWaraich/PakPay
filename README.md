@@ -2,7 +2,7 @@
 
 **PakPay** is a fintech MVP that simulates a digital wallet and merchant payment platform for Pakistan. Consumers top up via a simulated bank (on-ramp), send P2P transfers, pay verified merchants, and withdraw (off-ramp). Merchants receive wallet credits, view analytics, pass manual KYC, and receive T+2 settlements. Admins approve KYC, resolve disputes, and oversee transactions.
 
-**Live demo:** [https://pakpay10.site](https://pakpay10.site)
+**Live demo:** [https://pakpay.site](https://pakpay.site)
 
 > **Disclaimer:** PakPay is a portfolio / demonstration system. It is **not** a licensed payment institution, bank, or e-money issuer. Do not use with real customer funds without legal, compliance, and security review.
 

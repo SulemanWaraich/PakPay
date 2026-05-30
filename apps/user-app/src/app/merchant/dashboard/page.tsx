@@ -139,7 +139,10 @@ export default async function MerchantDashboardPage() {
 
     return (
       <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
-        <MerchantDashboardClientWrapper merchantId={merchant.userId} />
+        <MerchantDashboardClientWrapper
+          merchantUserId={merchant.userId}
+          merchantProfileId={merchant.id}
+        />
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
 

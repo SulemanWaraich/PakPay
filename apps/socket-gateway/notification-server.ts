@@ -1,7 +1,13 @@
+import "dotenv/config";
 import http from "http";
 import { Server } from "socket.io";
 import { createClient } from "redis";
 import winston from "winston";
+import db from "@repo/db";
+import {
+  verifyMerchantRoomAccess,
+  verifySocketToken,
+} from "./socketAuth";
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL ?? "info",
@@ -48,22 +54,59 @@ async function startServer() {
     },
   });
 
+  io.use(async (socket, next) => {
+    const raw = socket.handshake.auth.token;
+    const token = typeof raw === "string" ? raw.trim() : "";
+
+    if (!token) {
+      return next(new Error("unauthorized"));
+    }
+
+    const verified = await verifySocketToken(token);
+    if (!verified) {
+      return next(new Error("unauthorized"));
+    }
+
+    socket.data.userId = verified.userId;
+    socket.data.role = verified.role;
+    next();
+  });
+
   const subscriber = createClient({ url: getRedisUrl() });
   await subscriber.connect();
   logger.info("Redis subscriber connected");
 
-  io.on("connection", (socket) => {
-    const merchantId = socket.handshake.auth.merchantId;
-    const userId = socket.handshake.auth.userId;
+  io.on("connection", async (socket) => {
+    const userId = socket.data.userId;
+    const role = socket.data.role;
 
-    if (merchantId) {
-      socket.join(`merchant-${merchantId}`);
-      logger.info("Merchant joined room", { merchantId });
-    }
+    socket.join(`user-${userId}`);
+    logger.info("User joined room", { userId, role });
 
-    if (userId) {
-      socket.join(`user-${userId}`);
-      logger.info("User joined room", { userId });
+    if (role === "MERCHANT") {
+      const profile = await db.merchantProfile.findUnique({
+        where: { userId },
+        select: { id: true, userId: true },
+      });
+
+      if (profile) {
+        socket.join(`merchant-${profile.userId}`);
+        logger.info("Merchant joined room", { merchantUserId: profile.userId });
+      }
+
+      const rawMerchantId = socket.handshake.auth.merchantId;
+      const requestedProfileId =
+        rawMerchantId != null ? Number(rawMerchantId) : NaN;
+
+      if (Number.isFinite(requestedProfileId) && requestedProfileId > 0) {
+        const ownerUserId = await verifyMerchantRoomAccess(
+          requestedProfileId,
+          userId,
+        );
+        if (ownerUserId != null) {
+          socket.join(`merchant-${ownerUserId}`);
+        }
+      }
     }
   });
 

@@ -92,37 +92,70 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/hdfcWebHook", jsonParser, limiter, requireBankWebhookSignature, async (req, res) => {
-  const paymentinformation = {
-    token: req.body.token,
-    userId: req.body.userId,
-    amount: Number(req.body.amount),
-  };
-  logger.info("onramp webhook", { ...paymentinformation });
+  const token = String(req.body.token ?? "");
+  const userId = Number(req.body.userId);
+  const amount = Number(req.body.amount);
+
+  if (!token || !userId || !amount) {
+    return res.status(400).json({ msg: "missing payload" });
+  }
+
+  logger.info("onramp webhook", { token, userId, amount });
 
   try {
-    await db.$transaction(
-      [
-        db.balance.update({
-          where: { userId: paymentinformation.userId },
-          data: {
-            amount: {
-              increment: paymentinformation.amount,
-            },
-          },
-        }),
-        db.onRampTransaction.update({
-          where: { token: paymentinformation.token },
+    const outcome = await db.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "OnRampTransaction" WHERE token = ${token} FOR UPDATE`;
+
+        const onRamp = await tx.onRampTransaction.findUnique({ where: { token } });
+        if (!onRamp) {
+          return { kind: "invalid" as const };
+        }
+        if (onRamp.userId !== userId) {
+          return { kind: "invalid" as const };
+        }
+
+        if (onRamp.status === "Success") {
+          return { kind: "already_success" as const, creditAmount: onRamp.amount };
+        }
+        if (onRamp.status === "Failure") {
+          return { kind: "already_failed" as const };
+        }
+        if (onRamp.status !== "Processing") {
+          return { kind: "invalid" as const };
+        }
+
+        const creditAmount = onRamp.amount;
+
+        await tx.balance.update({
+          where: { userId },
+          data: { amount: { increment: creditAmount } },
+        });
+        await tx.onRampTransaction.update({
+          where: { token },
           data: { status: "Success" },
-        }),
-      ],
+        });
+
+        return { kind: "processed" as const, creditAmount };
+      },
       { maxWait: 10_000, timeout: 20_000 },
     );
 
+    if (outcome.kind === "invalid") {
+      return res.status(400).json({ msg: "invalid on-ramp token" });
+    }
+    if (outcome.kind === "already_failed") {
+      return res.status(400).json({ msg: "transaction already failed" });
+    }
+    if (outcome.kind === "already_success") {
+      return res.status(200).json({ msg: "already processed" });
+    }
+
     await publishEvent("web-app-channel", {
       type: "onRampSuccess",
-      userId: paymentinformation.userId,
-      amount: paymentinformation.amount,
-      token: paymentinformation.token,
+      userId,
+      amount: outcome.creditAmount,
+      token,
     });
 
     return res.status(200).json({ msg: "captured" });
@@ -144,15 +177,24 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
   try {
     const outcome = await db.$transaction(
       async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "OffRampTransaction" WHERE token = ${token} FOR UPDATE`;
+
         const offRamp = await tx.offRampTransaction.findUnique({ where: { token } });
         if (!offRamp || offRamp.userId !== userId) {
           return { kind: "invalid" as const };
         }
-        if (offRamp.status !== "Processing") {
-          return { kind: "not_processing" as const };
-        }
 
         const withdrawAmount = offRamp.amount;
+
+        if (offRamp.status === "Success") {
+          return { kind: "already_success" as const, withdrawAmount };
+        }
+        if (offRamp.status === "Failure") {
+          return { kind: "already_failed" as const };
+        }
+        if (offRamp.status !== "Processing") {
+          return { kind: "invalid" as const };
+        }
 
         await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${userId} FOR UPDATE`;
 
@@ -204,8 +246,11 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
     if (outcome.kind === "invalid") {
       return res.status(400).json({ msg: "invalid withdrawal token" });
     }
-    if (outcome.kind === "not_processing") {
-      return res.status(400).json({ msg: "withdrawal is not in processing state" });
+    if (outcome.kind === "already_failed") {
+      return res.status(400).json({ msg: "transaction already failed" });
+    }
+    if (outcome.kind === "already_success") {
+      return res.status(200).json({ msg: "already processed" });
     }
     if (outcome.kind === "no_balance") {
       return res.status(400).json({ msg: "wallet not found" });
@@ -214,13 +259,14 @@ app.post("/withdrawWebHook", jsonParser, limiter, requireBankWebhookSignature, a
       return res.status(400).json({ msg: "insufficient balance for withdrawal" });
     }
 
-    const settledAmount =
-      outcome.kind === "ok" ? outcome.withdrawAmount : amount;
+    if (outcome.kind !== "ok") {
+      return res.status(500).json({ msg: "transaction failed" });
+    }
 
     await publishEvent("web-app-channel", {
       type: "offRampSuccess",
       userId,
-      amount: settledAmount,
+      amount: outcome.withdrawAmount,
       token,
     });
 

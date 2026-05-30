@@ -2,6 +2,7 @@ import { Button } from "../components/ui/button";
 import { Check } from "lucide-react";
 import whyChooseIllustration from "../../public/why-choose-illustration.png";
 import Image from "next/image";
+import Link from "next/link";
 
 const benefits = [
   "Lowest Transaction Fees",
@@ -65,7 +66,10 @@ const WhyChoose = () => {
               style={{ animationDelay: "0.4s" }}
             >
               <Button variant="pakpay" size="lg">
+                <Link href={"/about"}>
                 Learn More
+                
+                </Link>
               </Button>
             </div>
           </div>

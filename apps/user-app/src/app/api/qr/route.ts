@@ -18,8 +18,14 @@ export async function GET() {
       return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
     }
 
+    if (session.user.role !== "MERCHANT") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const merchantUserId = Number(session.user.id);
+
     const merchant = await prisma.merchantProfile.findUnique({
-      where: { userId: Number(session.user.id) },
+      where: { userId: merchantUserId },
       select: {
         id: true,
         ownerName: true,
@@ -61,8 +67,8 @@ export async function POST(req: Request) {
       return jsonError(AUTH_MESSAGES.NOT_LOGGED_IN, 401);
     }
 
-    if (session.user.role && session.user.role !== "MERCHANT") {
-      return jsonError("Only merchant accounts can update a business profile.", 403);
+    if (session.user.role !== "MERCHANT") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const userId = Number(session.user.id);

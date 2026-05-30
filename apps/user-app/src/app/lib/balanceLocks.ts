@@ -1,8 +1,20 @@
 import type { Prisma } from "@prisma/client";
 import prisma from "@repo/db";
 import { availableBalancePaisa } from "./balance";
+import { logger } from "./logger";
 
 type Tx = Prisma.TransactionClient;
+
+export type FinalizeMerchantPaymentResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "txn_not_success" | "lock_mismatch";
+      customerId: number;
+      ref: string;
+      expectedPaisa: number;
+      lockedPaisa?: number;
+    };
 
 /** Reserve funds for an in-flight off-ramp (same transaction as OffRamp create). */
 export async function lockFundsForOffRamp(
@@ -53,7 +65,15 @@ export async function finalizeCustomerMerchantPayment(
   customerId: number,
   amountPaisa: number,
   ref: string,
-): Promise<void> {
+): Promise<FinalizeMerchantPaymentResult> {
+  let result: FinalizeMerchantPaymentResult = {
+    ok: false,
+    reason: "txn_not_success",
+    customerId,
+    ref,
+    expectedPaisa: amountPaisa,
+  };
+
   await prisma.$transaction(async (tx) => {
     const txn = await tx.merchantTransaction.findUnique({ where: { ref } });
     if (!txn || txn.status !== "SUCCESS") {
@@ -64,6 +84,23 @@ export async function finalizeCustomerMerchantPayment(
 
     const balance = await tx.balance.findUnique({ where: { userId: customerId } });
     if (!balance || balance.locked < amountPaisa) {
+      const lockedPaisa = balance?.locked ?? 0;
+      logger.error("finalizeCustomerMerchantPayment: lock mismatch — releasing stranded funds", {
+        customerId,
+        ref,
+        expectedPaisa: amountPaisa,
+        lockedPaisa,
+        transactionId: txn.id,
+      });
+      await releaseMerchantPaymentLock(tx, customerId, amountPaisa);
+      result = {
+        ok: false,
+        reason: "lock_mismatch",
+        customerId,
+        ref,
+        expectedPaisa: amountPaisa,
+        lockedPaisa,
+      };
       return;
     }
 
@@ -74,7 +111,11 @@ export async function finalizeCustomerMerchantPayment(
         locked: { decrement: amountPaisa },
       },
     });
+
+    result = { ok: true };
   });
+
+  return result;
 }
 
 /** Release reservation when merchant payment fails (idempotent while PENDING). */
@@ -83,6 +124,8 @@ export async function releaseMerchantPaymentLock(
   customerId: number,
   amountPaisa: number,
 ): Promise<void> {
+  await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${customerId} FOR UPDATE`;
+
   const balance = await tx.balance.findUnique({ where: { userId: customerId } });
   if (!balance) {
     return;

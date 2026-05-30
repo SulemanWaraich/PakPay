@@ -44,31 +44,33 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await db.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        number,
-        password: hashedPassword,
-        role,
-      },
-    });
-
-    await db.balance.create({
-      data: {
-        userId: user.id,
-        amount: 0,
-        locked: 0,
-      },
-    });
-
-    if (role === "MERCHANT") {
-      await db.merchantProfile.create({
+    await db.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
-          userId: user.id,
+          name,
+          email: normalizedEmail,
+          number,
+          password: hashedPassword,
+          role,
         },
       });
-    }
+
+      await tx.balance.create({
+        data: {
+          userId: user.id,
+          amount: 0,
+          locked: 0,
+        },
+      });
+
+      if (role === "MERCHANT") {
+        await tx.merchantProfile.create({
+          data: {
+            userId: user.id,
+          },
+        });
+      }
+    });
 
     return NextResponse.json(
       {

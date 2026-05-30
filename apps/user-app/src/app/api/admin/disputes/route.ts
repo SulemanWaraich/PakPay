@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
+import { rateLimitAllow } from "../../../lib/rateLimitRedis";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -14,6 +15,15 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const adminId = Number(session.user.id);
+
+  if (!(await rateLimitAllow(`rl:admin:disputes:${adminId}`, 10, 60))) {
+    return NextResponse.json(
+      { success: false, message: "Too many requests" },
+      { status: 429 },
+    );
   }
 
   let json: unknown;
@@ -29,7 +39,6 @@ export async function POST(req: Request) {
   }
 
   const { disputeId, action, note } = parsed.data;
-  const adminId = Number(session.user.id);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -86,6 +95,7 @@ export async function POST(req: Request) {
 
       const customerId = m.customerId;
       const merchantUserId = profile.userId;
+      const refundAmount = m.amount;
       const [lockFirst, lockSecond] =
         customerId < merchantUserId
           ? [customerId, merchantUserId]
@@ -94,13 +104,40 @@ export async function POST(req: Request) {
       await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${lockFirst} FOR UPDATE`;
       await tx.$queryRaw`SELECT * FROM "Balance" WHERE "userId" = ${lockSecond} FOR UPDATE`;
 
+      const merchantBalance = await tx.balance.findUnique({
+        where: { userId: merchantUserId },
+      });
+
+      // OPTION A (strict): refuse refunds that would drive merchant gross balance negative.
+      if (!merchantBalance || merchantBalance.amount < refundAmount) {
+        const reviewNote =
+          note ??
+          "Merchant has insufficient balance for refund. Resolve manually.";
+        await tx.dispute.update({
+          where: { id: disputeId },
+          data: {
+            status: "UNDER_REVIEW",
+            adminNotes: reviewNote,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            merchantId: m.merchantId,
+            action: "REFUND_BLOCKED_INSUFFICIENT_MERCHANT",
+            reason: `merchantAmount=${merchantBalance?.amount ?? 0}, refund=${refundAmount}`,
+            performedBy: adminId,
+          },
+        });
+        throw new Error("MERCHANT_INSUFFICIENT");
+      }
+
       await tx.balance.update({
         where: { userId: customerId },
-        data: { amount: { increment: m.amount } },
+        data: { amount: { increment: refundAmount } },
       });
       await tx.balance.update({
         where: { userId: merchantUserId },
-        data: { amount: { decrement: m.amount } },
+        data: { amount: { decrement: refundAmount } },
       });
 
       await tx.merchantTransaction.update({
@@ -138,6 +175,15 @@ export async function POST(req: Request) {
     }
     if (msg === "ALREADY_RESOLVED" || msg === "ALREADY_REFUNDED") {
       return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    if (msg === "MERCHANT_INSUFFICIENT") {
+      return NextResponse.json(
+        {
+          error:
+            "Merchant has insufficient balance for refund. Resolve manually.",
+        },
+        { status: 400 },
+      );
     }
     console.error("admin disputes", e);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

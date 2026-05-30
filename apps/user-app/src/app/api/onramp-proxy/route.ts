@@ -3,11 +3,22 @@ import { getServerSession } from "next-auth";
 import prisma from "@repo/db";
 import { authOptions } from "../../lib/auth";
 import { postSignedBankWebhook } from "../../lib/signedBankWebhook";
+import { rateLimitAllow } from "../../lib/rateLimitRedis";
+import { getClientIp } from "../../lib/clientIp";
+import { jsonError } from "../../lib/apiErrors";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const uid = String(session.user.id);
+  const ip = getClientIp(req);
+  const okUser = await rateLimitAllow(`rl:user:onramp-proxy:${uid}`, 25, 60);
+  const okIp = await rateLimitAllow(`rl:ip:onramp-proxy:${ip}`, 60, 60);
+  if (!okUser || !okIp) {
+    return jsonError("Too many requests. Try again later.", 429);
   }
 
   let body: { amount?: unknown; token?: unknown; userId?: unknown };

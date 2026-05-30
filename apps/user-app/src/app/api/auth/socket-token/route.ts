@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { decode } from "next-auth/jwt";
 import { authSecret } from "../../../lib/authSecret";
 
 function sessionCookieName(): string {
@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await getToken({
+  const payload = await decode({
     token: raw,
     secret: authSecret(),
   });

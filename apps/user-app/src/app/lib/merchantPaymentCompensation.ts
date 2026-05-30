@@ -1,4 +1,4 @@
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { releaseMerchantPaymentLock } from "./balanceLocks";
 import { logger } from "./logger";
 
@@ -16,7 +16,7 @@ export async function compensateFailedMerchantPayment(
   customerId: number,
   amountPaisa: number,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  await prismaPlain.$transaction(async (tx) => {
     const txn = await tx.merchantTransaction.findUnique({ where: { ref } });
     if (!txn || txn.status !== "PENDING") {
       return;
@@ -49,7 +49,7 @@ export async function compensateFinalizeFailureAfterSuccess(
       : [merchantUserId, customerId];
 
   try {
-    return await prisma.$transaction(async (tx) => {
+    return await prismaPlain.$transaction(async (tx) => {
       const txn = await tx.merchantTransaction.findUnique({ where: { ref } });
       if (!txn || txn.status !== "SUCCESS") {
         return { outcome: "SKIPPED" as const };

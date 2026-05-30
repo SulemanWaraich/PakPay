@@ -6,6 +6,7 @@ declare module "next-auth" {
     user: {
       id: string;
       role: "USER" | "MERCHANT" | "ADMIN";
+      merchantId?: number | null;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
     email: string | null;
     role: "ADMIN" | "USER" | "MERCHANT";
     sessionVersion: number;
+    merchantId?: number | null;
   }
 }
 
@@ -24,5 +26,6 @@ declare module "next-auth/jwt" {
     sub: string;
     sessionVersion?: number;
     sessionInvalid?: boolean;
+    merchantId?: number | null;
   }
 }

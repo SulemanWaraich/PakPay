@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import { nanoid } from "nanoid";
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
   try {
     const token = nanoid(16);
-    const transaction = await prisma.$transaction(async (tx) => {
+    const transaction = await prismaPlain.$transaction(async (tx) => {
       await lockFundsForOffRamp(tx, userId, amountPaisa);
       return tx.offRampTransaction.create({
         data: {

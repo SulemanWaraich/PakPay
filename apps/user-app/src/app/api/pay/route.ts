@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { nanoid } from "nanoid";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     let txResult: TxResult;
 
     try {
-      txResult = await prisma.$transaction(async (tx) => {
+      txResult = await prismaPlain.$transaction(async (tx) => {
         if (ref) {
           const existing = await tx.merchantTransaction.findUnique({
             where: { ref: paymentRef },

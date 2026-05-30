@@ -13,6 +13,7 @@ export type ValidatedUser = {
   email: string | null;
   role: "USER" | "MERCHANT" | "ADMIN";
   sessionVersion: number;
+  merchantId: number | null;
 };
 
 export type CredentialResult =
@@ -34,13 +35,13 @@ export async function validateCredentials(
   if (!password) {
     return { ok: false, message: AUTH_MESSAGES.MISSING_PASSWORD };
   }
-
   if (await isLoginLocked(email)) {
     return { ok: false, message: AUTH_MESSAGES.LOCKED };
   }
 
   const existingUser = await db.user.findFirst({
     where: { email },
+    include: { merchantProfile: { select: { id: true } } },
   });
 
   if (!existingUser) {
@@ -64,6 +65,7 @@ export async function validateCredentials(
       email: existingUser.email,
       role: existingUser.role,
       sessionVersion: existingUser.sessionVersion,
+      merchantId: existingUser.merchantProfile?.id ?? null,
     },
   };
 }

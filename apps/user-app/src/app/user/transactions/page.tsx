@@ -10,6 +10,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../../lib/auth"
 import FilterForm from "../../../components/FilterForm"
 import ExportButton from "../../../components/ExportButton"
+import { MerchantPaymentDisputeActions } from "../../../components/MerchantPaymentDisputeActions"
 import { redirect } from "next/navigation"
 import { paisaToPkr } from "../../lib/money"
 
@@ -49,6 +50,16 @@ export default async function TransactionsPage({
     let onrampTx: any[] = []
     let offrampTx: any[] = []
     let p2pTx: any[] = []
+    let merchantTx: {
+      id: number
+      amount: number
+      status: string
+      refunded: boolean
+      createdAt: Date
+      paymentMethod: string
+      ref: string | null
+      merchant: { businessName: string | null }
+    }[] = []
   
     if (!typeFilter || typeFilter === "all" || typeFilter === "deposit") {
       onrampTx = await prisma.onRampTransaction.findMany({
@@ -82,9 +93,58 @@ export default async function TransactionsPage({
         orderBy: { timestamp: "desc" },
       })
     }
+
+    if (!typeFilter || typeFilter === "all" || typeFilter === "merchant") {
+      merchantTx = await prisma.merchantTransaction.findMany({
+        where: {
+          customerId: Number(session.user.id),
+          ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          merchant: { select: { businessName: true } },
+        },
+      })
+    }
+
+    const userDisputes = await prisma.dispute.findMany({
+      where: { userId: Number(session.user.id) },
+      select: { transactionId: true },
+    })
+    const disputedTxnIds = new Set(userDisputes.map((d) => d.transactionId))
   
-    // Normalize to a common structure
-    const allTransactions = [
+    type ListedTransaction =
+      | {
+          id: string
+          type: string
+          date: string
+          time: string
+          amount: number
+          currency: string
+          status: string
+          isPositive: boolean
+          timestamp: Date
+          rawData: unknown
+          kind: "onramp" | "offramp" | "p2p"
+        }
+      | {
+          id: string
+          type: string
+          date: string
+          time: string
+          amount: number
+          currency: string
+          status: string
+          isPositive: boolean
+          timestamp: Date
+          rawData: unknown
+          kind: "merchant"
+          merchantTxnId: number
+          refunded: boolean
+          hasDispute: boolean
+        }
+
+    const allTransactions: ListedTransaction[] = [
       ...onrampTx.map((tx) => ({
         id: `onramp-${tx.id}`,
         type: "Deposit (On-Ramp)",
@@ -96,6 +156,7 @@ export default async function TransactionsPage({
         isPositive: true,
         timestamp: tx.startTime,
         rawData: tx,
+        kind: "onramp" as const,
       })),
       ...offrampTx.map((tx) => ({
         id: `offramp-${tx.id}`,
@@ -108,6 +169,7 @@ export default async function TransactionsPage({
         isPositive: false,
         timestamp: tx.startTime,
         rawData: tx,
+        kind: "offramp" as const,
       })),
       ...p2pTx.map((tx) => {
         const isSender = tx.fromUserId === Number(session.user.id)
@@ -119,11 +181,31 @@ export default async function TransactionsPage({
           amount: paisaToPkr(tx.amount),
           currency: "PKR",
           status: "Completed",
-          isPositive: !isSender, // Sent = negative, Received = positive
+          isPositive: !isSender,
           timestamp: tx.timestamp,
           rawData: tx,
+          kind: "p2p" as const,
         }
       }),
+      ...merchantTx.map((tx) => ({
+        id: `merchant-${tx.id}`,
+        type: `Merchant Payment — ${tx.merchant.businessName ?? "Merchant"}`,
+        date: new Date(tx.createdAt).toLocaleDateString(),
+        time: new Date(tx.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        amount: paisaToPkr(tx.amount),
+        currency: tx.paymentMethod,
+        status: tx.status,
+        isPositive: false,
+        timestamp: tx.createdAt,
+        rawData: tx,
+        kind: "merchant" as const,
+        merchantTxnId: tx.id,
+        refunded: tx.refunded,
+        hasDispute: disputedTxnIds.has(tx.id),
+      })),
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   
     // Calculate statistics
@@ -239,27 +321,38 @@ export default async function TransactionsPage({
                     </div>
   
                     {/* Right side */}
-                    <div className="flex items-center gap-3 sm:text-right">
-                      <p
-                        className={cn(
-                          "text-sm font-semibold",
-                          transaction.isPositive ? "text-green-600" : "text-red-600"
-                        )}
-                      >
-                        {transaction.isPositive ? "+" : "-"}Rs {Number(transaction.amount).toLocaleString()}
-                      </p>
-                      <Badge
-                        className={cn(
-                          "text-xs px-2 py-0.5",
-                          transaction.status === "Success"
-                            ? "bg-green-100 text-green-700"
-                            : transaction.status === "Failed"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        )}
-                      >
-                        {transaction.status}
-                      </Badge>
+                    <div className="flex flex-col items-end gap-2 sm:text-right">
+                      <div className="flex items-center gap-3">
+                        <p
+                          className={cn(
+                            "text-sm font-semibold",
+                            transaction.isPositive ? "text-green-600" : "text-red-600"
+                          )}
+                        >
+                          {transaction.isPositive ? "+" : "-"}Rs {Number(transaction.amount).toLocaleString()}
+                        </p>
+                        <Badge
+                          className={cn(
+                            "text-xs px-2 py-0.5",
+                            transaction.status === "SUCCESS" || transaction.status === "Success"
+                              ? "bg-green-100 text-green-700"
+                              : transaction.status === "FAILED" || transaction.status === "Failed"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          )}
+                        >
+                          {transaction.status}
+                        </Badge>
+                      </div>
+                      {transaction.kind === "merchant" && (
+                        <MerchantPaymentDisputeActions
+                          transactionId={transaction.merchantTxnId}
+                          hasDispute={transaction.hasDispute}
+                          canDispute={
+                            transaction.status === "SUCCESS" && !transaction.refunded
+                          }
+                        />
+                      )}
                     </div>
                   </div>
                 ))

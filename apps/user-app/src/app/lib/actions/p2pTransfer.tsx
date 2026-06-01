@@ -1,7 +1,7 @@
 "use server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth"
-import prisma from "@repo/db"
+import prisma, { prismaPlain } from "@repo/db"
 import { pkrToPaisa, paisaToPkr } from "../money"
 import { availableBalancePaisa } from "../balance"
 import { rateLimitAllow } from "../rateLimitRedis"
@@ -31,7 +31,7 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
     const amountPaisa = pkrToPaisa(amountPkr)
     const toUserId = user.id
 
-    await prisma.$transaction(async (tx) => {
+    await prismaPlain.$transaction(async (tx) => {
       const [lockFirst, lockSecond] =
         fromUserId < toUserId ? [fromUserId, toUserId] : [toUserId, fromUserId]
 

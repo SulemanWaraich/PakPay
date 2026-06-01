@@ -54,7 +54,7 @@ const QRCodePage = () => {
           data.kycStatus !== "VERIFIED" ||
           !isApprovedPaymentQrPayload(data.qrPayload)
         ) {
-          setError("Your business verification is pending. QR will appear once approved.");
+          setError("Documents submitted successfully! \nYour QR code will be ready within 24 hours \n after our team reviews your documents. \n We'll notify you once approved.");
           return;
         }
 

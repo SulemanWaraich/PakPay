@@ -4,9 +4,10 @@ export function authSecret(): string {
   if (s && s.length >= 8) {
     return s;
   }
-  if (process.env.NODE_ENV === "production") {
+  // Runtime guard only: Docker/Next build has no NEXTAUTH_URL, so no throw at build time.
+  if (process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL) {
     throw new Error(
-      "Set NEXTAUTH_SECRET or JWT_SECRET (min 8 chars) before accepting traffic.",
+      "Set NEXTAUTH_SECRET or JWT_SECRET before accepting traffic.",
     );
   }
   return "dev-only-secret-change-in-env-min-32-chars!!";

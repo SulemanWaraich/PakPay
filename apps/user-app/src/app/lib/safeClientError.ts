@@ -13,7 +13,8 @@ export function safeP2pTransferErrorMessage(error: unknown): string {
 
   if (
     error instanceof Error &&
-    error.message === "Insufficient funds to complete transfer."
+    (error.message === "Insufficient funds to complete transfer." ||
+      error.message === "Invalid transfer amount")
   ) {
     return error.message;
   }

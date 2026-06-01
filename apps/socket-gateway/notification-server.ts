@@ -3,11 +3,11 @@ import http from "http";
 import { Server } from "socket.io";
 import { createClient } from "redis";
 import winston from "winston";
-import db from "@repo/db";
+import prisma from "./src/prismaClient.js";
 import {
   verifyMerchantRoomAccess,
   verifySocketToken,
-} from "./socketAuth";
+} from "./src/socketAuth.js";
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL ?? "info",
@@ -84,7 +84,7 @@ async function startServer() {
     logger.info("User joined room", { userId, role });
 
     if (role === "MERCHANT") {
-      const profile = await db.merchantProfile.findUnique({
+      const profile = await prisma.merchantProfile.findUnique({
         where: { userId },
         select: { id: true, userId: true },
       });

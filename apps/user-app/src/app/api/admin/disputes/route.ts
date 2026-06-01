@@ -3,7 +3,46 @@ import prisma, { prismaPlain } from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { rateLimitAllow } from "../../../lib/rateLimitRedis";
+import { withAmountInPkr } from "../../../lib/money";
 import { z } from "zod";
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rows = await prismaPlain.dispute.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      MerchantTransaction: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          createdAt: true,
+          ref: true,
+          paymentMethod: true,
+          merchant: { select: { businessName: true } },
+        },
+      },
+      User: { select: { id: true, name: true, number: true } },
+    },
+  });
+
+  return NextResponse.json(
+    rows.map((r) => ({
+      id: r.id,
+      reason: r.reason,
+      status: r.status,
+      createdAt: r.createdAt,
+      resolvedAt: r.resolvedAt,
+      adminNotes: r.adminNotes,
+      MerchantTransaction: withAmountInPkr(r.MerchantTransaction),
+      user: r.User,
+    })),
+  );
+}
 
 const bodySchema = z.object({
   disputeId: z.number().int().positive(),

@@ -1,0 +1,8 @@
+ALTER TABLE "Dispute" RENAME COLUMN "merchantTransactionId" TO "transactionId";
+ALTER TABLE "Dispute" RENAME COLUMN "openedByUserId" TO "userId";
+ALTER TABLE "Dispute" RENAME COLUMN "resolutionNote" TO "adminNotes";
+ALTER TABLE "Dispute" ADD COLUMN IF NOT EXISTS "resolvedAt" TIMESTAMP;
+ALTER TYPE "DisputeStatus" ADD VALUE IF NOT EXISTS 'PENDING';
+ALTER TYPE "DisputeStatus" ADD VALUE IF NOT EXISTS 'RESOLVED';
+ALTER TYPE "DisputeStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
+ALTER TYPE "DisputeStatus" ADD VALUE IF NOT EXISTS 'UNDER_REVIEW';

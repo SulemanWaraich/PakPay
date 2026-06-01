@@ -5,8 +5,8 @@ export function authSecret(): string {
     return s;
   }
   if (process.env.NODE_ENV === "production") {
-    console.error(
-      "[auth] Set NEXTAUTH_SECRET or JWT_SECRET (min 8 chars) before accepting traffic.",
+    throw new Error(
+      "Set NEXTAUTH_SECRET or JWT_SECRET (min 8 chars) before accepting traffic.",
     );
   }
   return "dev-only-secret-change-in-env-min-32-chars!!";

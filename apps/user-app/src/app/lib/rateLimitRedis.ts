@@ -1,4 +1,5 @@
 import { getRedis } from "./redisClient";
+import { logger } from "./logger";
 
 /**
  * Fixed-window rate limit using Redis INCR.
@@ -16,8 +17,14 @@ export async function rateLimitAllow(
       await r.expire(key, windowSeconds);
     }
     return n <= limit;
-  } catch {
-    // Fail open if Redis unavailable (avoid total outage)
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      logger.error("rate_limit_redis_unavailable", {
+        key,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
     return true;
   }
 }

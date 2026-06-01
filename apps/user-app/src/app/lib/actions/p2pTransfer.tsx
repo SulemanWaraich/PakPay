@@ -7,9 +7,14 @@ import { availableBalancePaisa } from "../balance"
 import { rateLimitAllow } from "../rateLimitRedis"
 import { logger } from "../logger"
 import { safeP2pTransferErrorMessage } from "../safeClientError"
+import { amountPkrSchema } from "../validation/schemas"
 
 /** @param amountPkr Whole PKR from the UI (converted to paisa before ledger writes). */
 export const p2pTransfer = async (to: string, amountPkr: number) => {
+  if (!amountPkrSchema.safeParse(amountPkr).success) {
+    throw new Error("Invalid transfer amount")
+  }
+
   try {
     const session = await getServerSession(authOptions)
     const from = session?.user?.id

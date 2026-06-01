@@ -1,188 +1,455 @@
 import {
-  PrismaClient,
-  OnRampStatus,
+  DisputeStatus,
+  KycStatus,
+  MerchantCategory,
   OffRampStatus,
+  OnRampStatus,
+  PaymentMethod,
+  SettlementStatus,
+  TransactionStatus,
+  UserRole,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { SEED_CREDENTIALS } from "./seed.credentials.local.js";
+import { prismaPlain as prisma } from "../src/index.js";
 
-const prisma = new PrismaClient();
+const DEMO_PASSWORD = "Demo@1234";
 
-async function main() {
-  // All monetary `amount` fields are in PAISA (1 PKR = 100 paisa). e.g. 15000 paisa = PKR 150.00
-  console.log("🌱 Seeding database...");
+const DEMO_EMAILS = [
+  "demo.user@pakpay.site",
+  "demo.merchant@pakpay.site",
+  "demo.merchant2@pakpay.site",
+  "demo.admin@pakpay.site",
+  "demo.user2@pakpay.site",
+] as const;
 
-  const { admin, suleman: sulemanCreds, usama: usamaCreds } = SEED_CREDENTIALS;
+/** PKR → paisa */
+const pkr = (amountPkr: number) => Math.round(amountPkr * 100);
 
-  const adminPassword = await bcrypt.hash(admin.password, 10);
-  await prisma.user.upsert({
-    where: { number: admin.number },
-    update: {
-      email: admin.email,
-      password: adminPassword,
-      role: "ADMIN",
-      name: admin.name,
-    },
-    create: {
-      email: admin.email,
-      password: adminPassword,
-      role: "ADMIN",
-      number: admin.number,
-      name: admin.name,
-    },
+const daysAgo = (days: number) =>
+  new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+async function cleanupDemoData() {
+  const existingUsers = await prisma.user.findMany({
+    where: { email: { in: [...DEMO_EMAILS] } },
+    select: { id: true },
   });
+  const demoUserIds = existingUsers.map((u) => u.id);
 
-  const sulemanPassword = await bcrypt.hash(sulemanCreds.password, 10);
-  const suleman = await prisma.user.upsert({
-    where: { number: sulemanCreds.number },
-    update: {
-      email: sulemanCreds.email,
-      password: sulemanPassword,
-      name: sulemanCreds.name,
-    },
-    create: {
-      email: sulemanCreds.email,
-      number: sulemanCreds.number,
-      password: sulemanPassword,
-      name: sulemanCreds.name,
-      OnRampTransaction: {
-        create: [
-          {
-            startTime: new Date(),
-            status: OnRampStatus.Success,
-            amount: 15000,
-            token: "ONRAMP001",
-            provider: "Meezan Bank",
-          },
-          {
-            startTime: new Date(),
-            status: OnRampStatus.Processing,
-            amount: 5000,
-            token: "ONRAMP002",
-            provider: "HBL Bank",
-          },
+  const existingProfiles =
+    demoUserIds.length > 0
+      ? await prisma.merchantProfile.findMany({
+          where: { userId: { in: demoUserIds } },
+          select: { id: true },
+        })
+      : [];
+  const demoProfileIds = existingProfiles.map((p) => p.id);
+
+  if (demoProfileIds.length > 0) {
+    await prisma.auditLog.deleteMany({
+      where: { merchantId: { in: demoProfileIds } },
+    });
+  }
+
+  if (demoUserIds.length > 0) {
+    await prisma.dispute.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
+  }
+
+  if (demoUserIds.length > 0 || demoProfileIds.length > 0) {
+    const or: { customerId?: { in: number[] }; merchantId?: { in: number[] } }[] =
+      [];
+    if (demoUserIds.length > 0) {
+      or.push({ customerId: { in: demoUserIds } });
+    }
+    if (demoProfileIds.length > 0) {
+      or.push({ merchantId: { in: demoProfileIds } });
+    }
+    await prisma.merchantTransaction.deleteMany({ where: { OR: or } });
+  }
+
+  if (demoProfileIds.length > 0) {
+    await prisma.settlement.deleteMany({
+      where: { merchantId: { in: demoProfileIds } },
+    });
+  }
+
+  if (demoUserIds.length > 0) {
+    await prisma.p2pTransfer.deleteMany({
+      where: {
+        OR: [
+          { fromUserId: { in: demoUserIds } },
+          { toUserId: { in: demoUserIds } },
         ],
       },
-      Balance: {
-        create: {
-          amount: 18000,
-          locked: 2000,
-        },
-      },
-      OffRampTransaction: {
-        create: [
-          {
-            startTime: new Date(),
-            status: OffRampStatus.Success,
-            amount: 3000,
-            token: "OFFRAMP001",
-            bankAccount: "PK45HBL0000123456",
-          },
-          {
-            startTime: new Date(),
-            status: OffRampStatus.Failure,
-            amount: 1000,
-            token: "OFFRAMP002",
-            bankAccount: "PK90MEZN0000654321",
-          },
-        ],
-      },
-    },
-  });
+    });
+    await prisma.onRampTransaction.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
+    await prisma.offRampTransaction.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
+    await prisma.balance.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
+    await prisma.merchantProfile.deleteMany({
+      where: { userId: { in: demoUserIds } },
+    });
+  }
 
-  const usamaPassword = await bcrypt.hash(usamaCreds.password, 10);
-  const usama = await prisma.user.upsert({
-    where: { number: usamaCreds.number },
-    update: {
-      email: usamaCreds.email,
-      password: usamaPassword,
-      name: usamaCreds.name,
-    },
-    create: {
-      email: usamaCreds.email,
-      number: usamaCreds.number,
-      password: usamaPassword,
-      name: usamaCreds.name,
-      OnRampTransaction: {
-        create: [
-          {
-            startTime: new Date(),
-            status: OnRampStatus.Failure,
-            amount: 4000,
-            token: "ONRAMP003",
-            provider: "Allied Bank",
-          },
-          {
-            startTime: new Date(),
-            status: OnRampStatus.Success,
-            amount: 12000,
-            token: "ONRAMP004",
-            provider: "UBL Bank",
-          },
-        ],
-      },
-      Balance: {
-        create: {
-          amount: 15000,
-          locked: 0,
-        },
-      },
-      OffRampTransaction: {
-        create: [
-          {
-            startTime: new Date(),
-            status: OffRampStatus.Success,
-            amount: 2000,
-            token: "OFFRAMP003",
-            bankAccount: "PK09ALLD0000987654",
-          },
-        ],
-      },
-    },
-  });
-
-  await prisma.p2pTransfer.createMany({
-    data: [
-      {
-        amount: 1000,
-        timestamp: new Date(),
-        fromUserId: suleman.id,
-        toUserId: usama.id,
-      },
-      {
-        amount: 2500,
-        timestamp: new Date(),
-        fromUserId: usama.id,
-        toUserId: suleman.id,
-      },
-      {
-        amount: 500,
-        timestamp: new Date(),
-        fromUserId: suleman.id,
-        toUserId: usama.id,
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  console.log({
-    message: "✅ Database seeded successfully!",
-    logins: {
-      admin: { email: admin.email, number: admin.number },
-      suleman: { email: sulemanCreds.email, number: sulemanCreds.number },
-      usama: { email: usamaCreds.email, number: usamaCreds.number },
-    },
-    sulemanId: suleman.id,
-    usamaId: usama.id,
+  await prisma.user.deleteMany({
+    where: { email: { in: [...DEMO_EMAILS] } },
   });
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error("❌ Seeding error:", e);
-    await prisma.$disconnect();
-    process.exit(1);
+async function main() {
+  console.log("🌱 Seeding PakPay demo data…");
+
+  await cleanupDemoData();
+
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  const sara = await prisma.user.create({
+    data: {
+      email: "demo.user@pakpay.site",
+      password: passwordHash,
+      name: "Sara Malik",
+      number: "+923001234567",
+      role: UserRole.USER,
+      Balance: { create: { amount: pkr(45_000), locked: 0 } },
+    },
   });
+
+  const ahmed = await prisma.user.create({
+    data: {
+      email: "demo.merchant@pakpay.site",
+      password: passwordHash,
+      name: "Ahmed Khan",
+      number: "+923007654321",
+      role: UserRole.MERCHANT,
+      Balance: { create: { amount: pkr(28_000), locked: 0 } },
+    },
+  });
+
+  const bilal = await prisma.user.create({
+    data: {
+      email: "demo.merchant2@pakpay.site",
+      password: passwordHash,
+      name: "Bilal Raza",
+      number: "+923331122334",
+      role: UserRole.MERCHANT,
+      Balance: { create: { amount: pkr(9_500), locked: 0 } },
+    },
+  });
+
+  const admin = await prisma.user.create({
+    data: {
+      email: "demo.admin@pakpay.site",
+      password: passwordHash,
+      name: "Admin User",
+      number: "+923009999999",
+      role: UserRole.ADMIN,
+      Balance: { create: { amount: 0, locked: 0 } },
+    },
+  });
+
+  const usman = await prisma.user.create({
+    data: {
+      email: "demo.user2@pakpay.site",
+      password: passwordHash,
+      name: "Usman Tariq",
+      number: "+923451234567",
+      role: UserRole.USER,
+      Balance: { create: { amount: pkr(15_000), locked: 0 } },
+    },
+  });
+
+  const karachiBites = await prisma.merchantProfile.create({
+    data: {
+      userId: ahmed.id,
+      businessName: "Karachi Bites",
+      category: MerchantCategory.FOOD,
+      address: "Block 5, Clifton, Karachi",
+      kycStatus: KycStatus.VERIFIED,
+      ownerName: "Ahmed Khan",
+      createdAt: daysAgo(35),
+    },
+  });
+
+  await prisma.merchantProfile.update({
+    where: { id: karachiBites.id },
+    data: {
+      qrPayload: `https://pakpay.site/pay?v=1&type=merchant&mid=${karachiBites.id}`,
+    },
+  });
+
+  await prisma.merchantProfile.create({
+    data: {
+      userId: bilal.id,
+      businessName: "TechZone Accessories",
+      category: MerchantCategory.TECH,
+      address: "Main Boulevard, Gulberg III, Lahore",
+      kycStatus: KycStatus.SUBMITTED,
+      ownerName: "Bilal Raza",
+      kycSubmittedAt: daysAgo(3),
+      createdAt: daysAgo(14),
+    },
+  });
+
+  const onRampSpecs = [
+    { amount: 10_000, provider: "HBL", days: 30, token: "DEMO-ONRAMP-001" },
+    { amount: 15_000, provider: "Meezan Bank", days: 22, token: "DEMO-ONRAMP-002" },
+    { amount: 8_000, provider: "HBL", days: 15, token: "DEMO-ONRAMP-003" },
+    { amount: 20_000, provider: "UBL", days: 7, token: "DEMO-ONRAMP-004" },
+    { amount: 5_000, provider: "Meezan Bank", days: 2, token: "DEMO-ONRAMP-005" },
+  ] as const;
+
+  for (const spec of onRampSpecs) {
+    await prisma.onRampTransaction.create({
+      data: {
+        userId: sara.id,
+        amount: pkr(spec.amount),
+        provider: spec.provider,
+        status: OnRampStatus.Success,
+        token: spec.token,
+        startTime: daysAgo(spec.days),
+      },
+    });
+  }
+
+  await prisma.offRampTransaction.create({
+    data: {
+      userId: sara.id,
+      amount: pkr(5_000),
+      status: OffRampStatus.Success,
+      token: "DEMO-OFFRAMP-001",
+      startTime: daysAgo(20),
+      accountHolderName: "Sara Malik",
+      bankName: "HBL",
+      accountNumber: "01234567890123",
+      bankAccount: "HBL — 01234567890123",
+    },
+  });
+
+  await prisma.offRampTransaction.create({
+    data: {
+      userId: sara.id,
+      amount: pkr(3_000),
+      status: OffRampStatus.Success,
+      token: "DEMO-OFFRAMP-002",
+      startTime: daysAgo(10),
+      accountHolderName: "Sara Malik",
+      bankName: "Meezan Bank",
+      accountNumber: "98765432109876",
+      bankAccount: "Meezan Bank — 98765432109876",
+    },
+  });
+
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: sara.id,
+      toUserId: usman.id,
+      amount: pkr(2_000),
+      timestamp: daysAgo(18),
+    },
+  });
+
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: sara.id,
+      toUserId: usman.id,
+      amount: pkr(500),
+      timestamp: daysAgo(5),
+    },
+  });
+
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: usman.id,
+      toUserId: sara.id,
+      amount: pkr(1_000),
+      timestamp: daysAgo(12),
+    },
+  });
+
+  const settlement1 = await prisma.settlement.create({
+    data: {
+      merchantId: karachiBites.id,
+      amount: pkr(850 + 1_200 + 650 + 2_100),
+      status: SettlementStatus.SUCCESS,
+      scheduledFor: daysAgo(26),
+      processedAt: daysAgo(26),
+      createdAt: daysAgo(27),
+    },
+  });
+
+  const settlement2 = await prisma.settlement.create({
+    data: {
+      merchantId: karachiBites.id,
+      amount: pkr(450 + 1_800 + 950),
+      status: SettlementStatus.SUCCESS,
+      scheduledFor: daysAgo(6),
+      processedAt: daysAgo(6),
+      createdAt: daysAgo(7),
+    },
+  });
+
+  const merchantTxSpecs = [
+    {
+      ref: "KB-001",
+      amount: 850,
+      days: 28,
+      settlementId: settlement1.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-002",
+      amount: 1_200,
+      days: 24,
+      settlementId: settlement1.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-003",
+      amount: 650,
+      days: 20,
+      settlementId: settlement1.id,
+      settled: true,
+      refunded: true,
+      status: TransactionStatus.FAILED,
+      refundedAt: daysAgo(18),
+    },
+    {
+      ref: "KB-004",
+      amount: 2_100,
+      days: 16,
+      settlementId: settlement1.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-005",
+      amount: 450,
+      days: 12,
+      settlementId: settlement2.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-006",
+      amount: 1_800,
+      days: 8,
+      settlementId: settlement2.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-007",
+      amount: 950,
+      days: 4,
+      settlementId: settlement2.id,
+      settled: true,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+    {
+      ref: "KB-008",
+      amount: 750,
+      days: 1,
+      settlementId: null,
+      settled: false,
+      refunded: false,
+      status: TransactionStatus.SUCCESS,
+    },
+  ] as const;
+
+  const merchantTxByRef: Record<string, { id: number }> = {};
+
+  for (const spec of merchantTxSpecs) {
+    const createdAt = daysAgo(spec.days);
+    const txn = await prisma.merchantTransaction.create({
+      data: {
+        merchantId: karachiBites.id,
+        customerId: sara.id,
+        amount: pkr(spec.amount),
+        paymentMethod: PaymentMethod.QR,
+        status: spec.status,
+        settled: spec.settled,
+        settledAt: spec.settled ? daysAgo(Math.max(spec.days - 2, 1)) : null,
+        settlementId: spec.settlementId,
+        refunded: spec.refunded,
+        refundedAt: "refundedAt" in spec ? spec.refundedAt : null,
+        ref: spec.ref,
+        createdAt,
+      },
+    });
+    merchantTxByRef[spec.ref] = { id: txn.id };
+  }
+
+  await prisma.dispute.create({
+    data: {
+      transactionId: merchantTxByRef["KB-003"].id,
+      userId: sara.id,
+      reason:
+        "I was charged but did not receive my order. The merchant confirmed cancellation verbally.",
+      status: DisputeStatus.RESOLVED,
+      adminNotes: "Verified with merchant. Refund processed.",
+      createdAt: daysAgo(19),
+      resolvedAt: daysAgo(18),
+    },
+  });
+
+  await prisma.dispute.create({
+    data: {
+      transactionId: merchantTxByRef["KB-006"].id,
+      userId: sara.id,
+      reason:
+        "Duplicate charge — I was charged twice for the same order. Please check transaction ref KB-006.",
+      status: DisputeStatus.PENDING,
+      createdAt: daysAgo(7),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      merchantId: karachiBites.id,
+      action: "DISPUTE_REFUND",
+      performedBy: admin.id,
+      reason: "Verified with merchant. Refund processed.",
+      createdAt: daysAgo(18),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      merchantId: karachiBites.id,
+      action: "KYC_APPROVE",
+      performedBy: admin.id,
+      reason: "Karachi Bites KYC approved for demo",
+      createdAt: daysAgo(29),
+    },
+  });
+
+  console.log("Demo seed complete:");
+  console.log("User:      demo.user@pakpay.site / Demo@1234");
+  console.log("Merchant:  demo.merchant@pakpay.site / Demo@1234");
+  console.log("Merchant2: demo.merchant2@pakpay.site / Demo@1234");
+  console.log("Admin:     demo.admin@pakpay.site / Demo@1234");
+  console.log("User2:     demo.user2@pakpay.site / Demo@1234");
+}
+
+try {
+  await main();
+} catch (e) {
+  console.error("❌ Demo seed failed:", e);
+  process.exitCode = 1;
+} finally {
+  await prisma.$disconnect();
+}

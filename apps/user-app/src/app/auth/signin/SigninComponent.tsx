@@ -8,6 +8,7 @@ import { useState } from "react";
 import { showToast } from "../../lib/toastMessage";
 import { useRouter, useSearchParams  } from "next/navigation";
 import { apiErrorMessage } from "../../lib/apiErrors";
+import { DemoCredentialsBanner } from "../../../components/DemoCredentialsBanner";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -121,6 +122,13 @@ export default function SignInPage() {
               {messages[reason]}
             </div>
           )}
+
+          <DemoCredentialsBanner
+            onSelect={(demoEmail, demoPassword) => {
+              setEmail(demoEmail);
+              setPassword(demoPassword);
+            }}
+          />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

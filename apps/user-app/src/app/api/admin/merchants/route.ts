@@ -19,6 +19,9 @@ export async function GET() {
       kycStatus: true,
       qrPayload: true,
       logoUrl: true,
+      cnicFrontUrl: true,
+      cnicBackUrl: true,
+      proofOfAddressUrl: true,
     },
     orderBy: { createdAt: "desc" },
   });

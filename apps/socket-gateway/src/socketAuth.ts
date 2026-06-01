@@ -1,5 +1,5 @@
 import { decode } from "next-auth/jwt";
-import db from "@repo/db";
+import prisma from "./prismaClient";
 
 export type VerifiedSocketUser = {
   userId: number;
@@ -40,7 +40,7 @@ export async function verifySocketToken(
     return null;
   }
 
-  const dbUser = await db.user.findUnique({
+  const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     select: { sessionVersion: true, role: true },
   });
@@ -72,7 +72,7 @@ export async function verifyMerchantRoomAccess(
   merchantProfileId: number,
   userId: number,
 ): Promise<number | null> {
-  const profile = await db.merchantProfile.findFirst({
+  const profile = await prisma.merchantProfile.findFirst({
     where: {
       id: merchantProfileId,
       userId,

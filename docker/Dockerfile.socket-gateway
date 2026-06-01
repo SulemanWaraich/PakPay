@@ -7,6 +7,7 @@ COPY apps/socket-gateway ./apps/socket-gateway
 COPY packages ./packages
 
 RUN npm ci
+RUN npx prisma generate --schema=./packages/db/prisma/schema.prisma
 
 WORKDIR /usr/src/app/apps/socket-gateway
 RUN npm run build

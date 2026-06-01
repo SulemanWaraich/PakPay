@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import prisma from "@repo/db"
+import prisma, { prismaPlain } from "@repo/db"
 import { postSignedBankWebhook } from "../../../lib/signedBankWebhook"
 import { logger } from "../../../lib/logger"
 
@@ -35,7 +35,7 @@ async function linkTransactionsToSettlement(
   txnIds: number[],
   now: Date,
 ) {
-  await prisma.$transaction([
+  await prismaPlain.$transaction([
     prisma.merchantTransaction.updateMany({
       where: { id: { in: txnIds } },
       data: {

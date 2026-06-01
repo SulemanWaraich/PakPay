@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { rateLimitAllow } from "../../../lib/rateLimitRedis";
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   const { disputeId, action, note } = parsed.data;
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prismaPlain.$transaction(async (tx) => {
       const dispute = await tx.dispute.findUnique({
         where: { id: disputeId },
         include: { MerchantTransaction: true },

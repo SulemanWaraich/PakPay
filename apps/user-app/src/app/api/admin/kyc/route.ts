@@ -1,4 +1,4 @@
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
 import { NextResponse } from "next/server";
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
     const payload = buildMerchantPayUrl(merchantId);
 
-    await prisma.$transaction([
+    await prismaPlain.$transaction([
       prisma.merchantProfile.update({
         where: { id: merchantId },
         data: {

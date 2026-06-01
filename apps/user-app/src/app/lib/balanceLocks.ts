@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import prisma from "@repo/db";
+import prisma, { prismaPlain } from "@repo/db";
 import { availableBalancePaisa } from "./balance";
 import { logger } from "./logger";
 
@@ -74,7 +74,7 @@ export async function finalizeCustomerMerchantPayment(
     expectedPaisa: amountPaisa,
   };
 
-  await prisma.$transaction(async (tx) => {
+  await prismaPlain.$transaction(async (tx) => {
     const txn = await tx.merchantTransaction.findUnique({ where: { ref } });
     if (!txn || txn.status !== "SUCCESS") {
       return;

@@ -7,7 +7,6 @@ type DemoCredentialsBannerProps = {
 const DEMO_ROWS = [
   { role: "User", email: "demo.user@pakpay.site", password: "Demo@1234" },
   { role: "Merchant", email: "demo.merchant@pakpay.site", password: "Demo@1234" },
-  { role: "Admin", email: "demo.admin@pakpay.site", password: "Demo@1234" },
 ] as const;
 
 export function DemoCredentialsBanner({ onSelect }: DemoCredentialsBannerProps) {

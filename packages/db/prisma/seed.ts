@@ -108,6 +108,7 @@ async function main() {
   await cleanupDemoData();
 
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const passwordHashAdmin = await bcrypt.hash("Pedri&Gavi@321", 10);
 
   const sara = await prisma.user.create({
     data: {
@@ -144,8 +145,8 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
-      email: "demo.admin@pakpay.site",
-      password: passwordHash,
+      email: "admin@pakpay.site",
+      password: passwordHashAdmin,
       name: "Admin User",
       number: "+923009999999",
       role: UserRole.ADMIN,

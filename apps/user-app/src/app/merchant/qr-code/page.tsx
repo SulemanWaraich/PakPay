@@ -1,19 +1,18 @@
 "use client";
 
-import { Download, Share2 } from "lucide-react";
+import { Download, Share2, AlertTriangle, FileText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { AlertTriangle, ShieldAlert, FileText } from "lucide-react";
-import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { isApprovedPaymentQrPayload } from "../../lib/kyc";
-
+import KycProgressTracker from "../../../components/merchant/KycProgressTracker";
 
 type Merchant = {
   id: number;
   businessName: string | null;
   qrPayload: string | null;
-  kycStatus: "PENDING" | "VERIFIED" | "REJECTED";
+  kycStatus: "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED";
+  kycReviewNote: string | null;
 };
 
 const QRCodePage = () => {
@@ -47,14 +46,14 @@ const QRCodePage = () => {
           return;
         }
 
-        // Store merchant 
+        if (data.kycStatus !== "VERIFIED") {
+          setMerchant(data);
+          return;
+        }
+
         setMerchant(data);
 
-        if (
-          data.kycStatus !== "VERIFIED" ||
-          !isApprovedPaymentQrPayload(data.qrPayload)
-        ) {
-          setError("Documents submitted successfully! \nYour QR code will be ready within 24 hours \n after our team reviews your documents. \n We'll notify you once approved.");
+        if (!isApprovedPaymentQrPayload(data.qrPayload)) {
           return;
         }
 
@@ -141,7 +140,7 @@ const QRCodePage = () => {
           {isProfileError ? (
             <FileText className="h-7 w-7 text-red-500" />
           ) : (
-            <ShieldAlert className="h-7 w-7 text-red-500" />
+            <AlertTriangle className="h-7 w-7 text-red-500" />
           )}
         </div>
 
@@ -169,6 +168,34 @@ const QRCodePage = () => {
   );
 }
 
+  if (merchant && merchant.kycStatus !== "VERIFIED") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 w-full">
+        <div className="w-full max-w-2xl space-y-4">
+          <KycProgressTracker
+            kycStatus={merchant.kycStatus}
+            businessName={merchant.businessName}
+            kycReviewNote={merchant.kycReviewNote}
+          />
+          <div className="rounded-2xl border bg-card shadow-lg p-8 text-center">
+            <h2 className="text-lg font-semibold mb-2">
+              Your QR code isn&apos;t ready yet
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {merchant.kycStatus === "PENDING" && "Complete your business profile and submit KYC documents to unlock your QR code."}
+              {merchant.kycStatus === "SUBMITTED" && "Documents submitted. Your QR code will be ready within 24 hours once our team reviews them."}
+              {merchant.kycStatus === "REJECTED" && `Verification failed${merchant.kycReviewNote ? `: ${merchant.kycReviewNote}` : ""}. Please resubmit your documents.`}
+            </p>
+            {(merchant.kycStatus === "PENDING" || merchant.kycStatus === "REJECTED") && (
+              <a href="/merchant/business-profile" className="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition">
+                {merchant.kycStatus === "REJECTED" ? "Resubmit Documents" : "Complete Business Profile"}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // --------------------------------------------------
   // 🟢 VERIFIED → Show QR Code

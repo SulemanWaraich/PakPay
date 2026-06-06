@@ -11,7 +11,7 @@ import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 import MerchantDashboardClientWrapper from "../../../components/MerchantDashboardClientWrapper"
 import TopCustomers from "../../../components/TopCustomers"
-import KycProgressTracker from "../../../components/merchant/KycProgressTracker"
+// import KycProgressTracker from "../../../components/merchant/KycProgressTracker"
 import { paisaToPkr } from "../../lib/money"
 import { availableBalancePaisa } from "../../lib/balance"
 
@@ -139,6 +139,9 @@ export default async function MerchantDashboardPage() {
       .slice(0, 5)
 
     return (
+      <>
+  
+ 
       <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
         <MerchantDashboardClientWrapper
           merchantUserId={merchant.userId}
@@ -147,11 +150,11 @@ export default async function MerchantDashboardPage() {
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
 
-            <KycProgressTracker
+             {/* <KycProgressTracker
               kycStatus={merchant.kycStatus}
               businessName={merchant.businessName}
               kycReviewNote={merchant.kycReviewNote}
-            />
+            />  */}
 
             {/* Greeting */}
             <div className="flex justify-between items-center mb-6">
@@ -243,6 +246,7 @@ export default async function MerchantDashboardPage() {
           </div>
         </main>
       </div>
+      </>
     )
   } catch (err) {
     console.error(err)

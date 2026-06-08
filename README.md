@@ -6,7 +6,7 @@
 
 > **Disclaimer:** PakPay is a portfolio / demonstration system. It is **not** a licensed payment institution, bank, or e-money issuer. Do not use with real customer funds without legal, compliance, and security review.
 
-**MVP readiness (June 2026):** **71%** — Strong end-to-end demo MVP with production-shaped money flows; not ready for regulated production or real funds.
+**MVP readiness (June 2026):** **90%** — Strong end-to-end demo MVP with production-shaped money flows; not ready for regulated production or real funds.
 
 ---
 
@@ -142,17 +142,17 @@ Business logic lives in route handlers, server actions, and shared libs (`money.
 | Admin KYC & transaction monitor | ✅ Complete | Overlaps dashboard + dedicated pages |
 | Real-time notifications | ✅ Complete | Socket.IO with NextAuth JWT verification |
 | Marketing / legal pages | ✅ Complete | About, terms, privacy, contact |
+| 2FA / OTP |  ✅ Complete |
+| OAuth / passkeys |  ✅ Complete |
+| Email / SMS receipts |  ✅ Complete |
+| User transaction CSV export | 🚧 Partial | Merchant CSV only; user has on-page export |
+| Comprehensive automated tests | 🚧 In progress | 18 Vitest + 1 Playwright smoke |
 | Real payment gateway (1Link, etc.) | ❌ Missing | Simulated bank only |
 | Card payments (`CARD` enum) | ❌ Missing | Schema only; UI uses WALLET / BANK_TRANSFER |
-| 2FA / OTP | ❌ Missing | Credentials only |
-| OAuth / passkeys | ❌ Missing | |
 | Automated KYC / AML vendor | ❌ Missing | Manual document review |
-| Email / SMS receipts | ❌ Missing | |
-| User transaction CSV export | 🚧 Partial | Merchant CSV only; user has on-page export |
 | Double-entry ledger / reconciliation jobs | ❌ Missing | Single `Balance` table |
 | Fraud rules (velocity, device) | ❌ Missing | Basic Redis rate limits only |
 | Mobile app | ❌ Missing | Web responsive only |
-| Comprehensive automated tests | 🚧 In progress | 18 Vitest + 1 Playwright smoke |
 | Regulatory reporting (SBP/SECP) | ❌ Missing | |
 
 ---

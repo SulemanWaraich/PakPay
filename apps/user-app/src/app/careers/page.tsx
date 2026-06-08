@@ -1,5 +1,3 @@
-"use client";
-// import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Code2, Lightbulb, Settings, Check, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";

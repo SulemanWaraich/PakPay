@@ -46,7 +46,7 @@ export function Footer() {
             <h4 className="font-bold text-brand-dark mb-6">Support</h4>
             <ul className="flex flex-col gap-4">
               <li>
-                <Link href="#" className="text-gray-600 hover:text-green-600 transition-colors">
+                <Link href="/contact" className="text-gray-600 hover:text-green-600 transition-colors">
                   Help Center
                 </Link>
               </li>

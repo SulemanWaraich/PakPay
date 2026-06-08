@@ -34,13 +34,13 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
           
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center justify-center">
             <Image
-              src="/logo2.jpg"
+              src="/logo6.png"
               alt="PakPay"
               width={120}
               height={40}
-              className="h-10 w-auto object-contain"
+              className="h-14 w-auto object-contain"
             />
             <span className="text-xl font-bold text-foreground">PakPay</span>
           </Link>

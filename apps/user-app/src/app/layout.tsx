@@ -23,6 +23,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "PakPay",
   description: "Secure payment platform",
+  icons: {
+    icon: '/logo7.png',
+  },
 };
 
 export default async function RootLayout({

@@ -32,6 +32,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "@tanstack/react-router": "^1.161.3",
     "@types/pdfkit": "^0.17.6",
     "cloudinary": "^2.9.0",
     "mailer": "^0.6.7",

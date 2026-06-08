@@ -1,22 +1,26 @@
 import Link from "next/link"
 import { Facebook, Twitter, Linkedin, Instagram } from "lucide-react"
+import Image from 'next/image';
+
 
 export function Footer() {
   return (
-    <footer className="bg-gray-50 pt-14 pb-4 border-t bg-pakpay-green-mint" id="contact">
+    <footer className="bg-white pt-14 pb-4 border-t bg-pakpay-green-mint" id="contact">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid gap-12 lg:grid-cols-4 mb-16 text-center">
-          <div className="flex flex-col gap-6">
-            <Link href="/" className="flex items-center justify-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-green bg-pakpay-green text-white font-bold text-xl">
-                P
-              </div>
+        <div className="grid gap-12 lg:grid-cols-4 mb-6 text-center">
+
+          <div className=" space-y-1">
+            <Link href="/" className="flex items-center justify-center ">
+
+              <Image src="/logo6.png" alt="PakPay" width={120} height={40} className="h-12 w-auto object-contain" />
+
               <span className="text-2xl font-bold text-brand-dark">PakPay</span>
             </Link>
             <p className="text-gray-600 leading-relaxed text-pretty">
               Send, save, and spend with confidence. Fast, secure, and simplified transactions for everyone.
             </p>
           </div>
+
           <div>
             <h4 className="font-bold text-brand-dark mb-6">Company</h4>
             <ul className="flex flex-col gap-4">
@@ -26,7 +30,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-gray-600 hover:text-green-600 transition-colors">
+                <Link href="/careers" className="text-gray-600 hover:text-green-600 transition-colors">
                   Careers
                 </Link>
               </li>

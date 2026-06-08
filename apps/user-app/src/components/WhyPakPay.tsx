@@ -11,9 +11,9 @@ const stats = [
   { value: "99.9%", label: "Uptime" },
 ];
 
-export function WhyChoose() {
+export function WhyPakPay() {
   return (
-    <section id="about" className="bg-white py-24">
+    <section id="why-pakpay" className="bg-white py-24">
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#16a34a]">
@@ -81,4 +81,4 @@ export function WhyChoose() {
     </section>
   );
 }
-export default WhyChoose;
+export default WhyPakPay;

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Features from "../components/Features";
-import WhyChoose from "../components/WhyChoose";
+import WhyChoose, { WhyPakPay } from "../components/WhyPakPay";
 import HowItWorks from "../components/HowItWorks";
 import {Footer} from "../components/Footer";
 
@@ -19,7 +19,7 @@ export default async function Page() {
       <main>
         <Hero />
         <Features />
-        <WhyChoose />
+        <WhyPakPay />
         <HowItWorks />
       </main>
       <Footer />

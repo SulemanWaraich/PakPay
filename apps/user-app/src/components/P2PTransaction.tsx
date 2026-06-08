@@ -8,8 +8,8 @@ type P2PTransactionProps = {
     amount: number
     toUserId: number
     fromUserId: number
-    fromUser: { name: string | null; number: string }
-    toUser: { name: string | null; number: string }
+    fromUser: { name: string | null; number: string | null }
+    toUser: { name: string | null; number: string | null }
   }[]
 }
 

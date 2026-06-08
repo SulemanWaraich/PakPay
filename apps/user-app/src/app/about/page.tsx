@@ -123,9 +123,16 @@ export default function AboutPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-green-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-3xl font-bold text-white">MS</span>
-              </div>
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-200 mx-auto mb-4">
+            {/* <Image
+              src="/suleman.png"
+              alt="Suleman"
+              width={128}
+              height={128}
+              className="w-full  h-full object-cover rounded-full"
+            /> */}
+            <span className="text-3xl font-bold text-white">S</span>
+          </div>
               <h3 className="text-lg font-semibold text-gray-900">Muhammad Suleman</h3>
               <p className="text-emerald-700 text-sm">Founder & Full-Stack Engineer</p>
             </div>

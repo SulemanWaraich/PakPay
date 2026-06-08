@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import db from "@repo/db";
-import { handleApiError } from "../../lib/middlewares/errorHandler";
-import { rateLimitAllow } from "../../lib/rateLimitRedis";
-import { getClientIp } from "../../lib/clientIp";
-import { registerBodySchema } from "../../lib/validation/schemas";
-import { jsonError, REGISTER_MESSAGES, zodErrorMessage } from "../../lib/apiErrors";
-import { createRegisteredUser } from "../../lib/registerUser";
+import { handleApiError } from "../../../lib/middlewares/errorHandler";
+import { rateLimitAllow } from "../../../lib/rateLimitRedis";
+import { getClientIp } from "../../../lib/clientIp";
+import { registerBodySchema } from "../../../lib/validation/schemas";
+import { jsonError, REGISTER_MESSAGES, zodErrorMessage } from "../../../lib/apiErrors";
+import { sendOtpEmail } from "../../../lib/email";
+import {
+  generateOtp,
+  isResendOnCooldown,
+  setResendCooldown,
+  storeOtp,
+} from "../../../lib/otp";
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const ok = await rateLimitAllow(`rl:ip:register:${ip}`, 5, 10 * 60);
+  const ok = await rateLimitAllow(`rl:ip:send-otp:${ip}`, 5, 10 * 60);
   if (!ok) {
     return jsonError(REGISTER_MESSAGES.RATE_LIMIT, 429);
   }
@@ -29,6 +35,10 @@ export async function POST(req: Request) {
   const { email, number, password, name, role } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
 
+  if (await isResendOnCooldown(normalizedEmail)) {
+    return jsonError("Please wait 60 seconds before requesting a new code.", 429);
+  }
+
   try {
     const [byEmail, byNumber] = await Promise.all([
       db.user.findFirst({ where: { email: normalizedEmail } }),
@@ -42,22 +52,22 @@ export async function POST(req: Request) {
       return jsonError(REGISTER_MESSAGES.DUPLICATE_PHONE, 400);
     }
 
-    await createRegisteredUser({
+    const otp = generateOtp();
+    await storeOtp(normalizedEmail, otp, {
       email: normalizedEmail,
       number,
       password,
       name,
       role,
-      emailVerified: new Date(),
     });
+    await sendOtpEmail(normalizedEmail, otp);
+    await setResendCooldown(normalizedEmail);
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Your account was created successfully.",
-      },
-      { status: 201 },
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Verification code sent to your email.",
+      email: normalizedEmail,
+    });
   } catch (err: unknown) {
     return handleApiError(err);
   }

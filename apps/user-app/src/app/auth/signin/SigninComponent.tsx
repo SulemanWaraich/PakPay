@@ -9,6 +9,7 @@ import { showToast } from "../../lib/toastMessage";
 import { useRouter, useSearchParams  } from "next/navigation";
 import { apiErrorMessage } from "../../lib/apiErrors";
 import { DemoCredentialsBanner } from "../../../components/DemoCredentialsBanner";
+import { AuthDivider, GoogleSignInButton } from "../../../components/GoogleSignInButton";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -129,6 +130,18 @@ export default function SignInPage() {
               setPassword(demoPassword);
             }}
           />
+
+          <GoogleSignInButton
+            callbackUrl={
+              callbackUrl && callbackUrl.startsWith("/")
+                ? callbackUrl
+                : reason === "payment_auth" && merchantId
+                  ? `/pay?v=1&type=merchant&mid=${encodeURIComponent(merchantId)}`
+                  : "/api/post-login"
+            }
+            disabled={submitting}
+          />
+          <AuthDivider />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -5,9 +5,11 @@ import { Input } from "../../../components/ui/input";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { AuthDivider, GoogleSignInButton } from "../../../components/GoogleSignInButton";
 import { showToast } from "../../lib/toastMessage";
 import { apiErrorMessage } from "../../lib/apiErrors";
+
+const PENDING_REGISTRATION_KEY = "pakpay_pending_registration";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -58,16 +60,18 @@ export default function SignupPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/register", {
+      const payload = {
+        email: email.trim().toLowerCase(),
+        number: number.trim(),
+        password,
+        name: name.trim(),
+        role,
+      };
+
+      const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          number: number.trim(),
-          password,
-          name: name.trim(),
-          role,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -75,29 +79,16 @@ export default function SignupPage() {
       if (!res.ok) {
         showToast(
           "error",
-          apiErrorMessage(data, "Registration failed. Please try again."),
+          apiErrorMessage(data, "Could not send verification code. Please try again."),
         );
         return;
       }
 
-      showToast("success", "Account created. Signing you in…");
-
-      const loginRes = await signIn("credentials", {
-        redirect: false,
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (loginRes?.ok) {
-        showToast("success", "Welcome to PakPay.");
-        router.push("/api/post-login");
-      } else {
-        showToast(
-          "info",
-          "Account created. Please sign in with your email and password.",
-        );
-        router.push("/auth/signin");
-      }
+      sessionStorage.setItem(PENDING_REGISTRATION_KEY, JSON.stringify(payload));
+      showToast("success", "Verification code sent. Check your email.");
+      router.push(
+        `/auth/verify-email?email=${encodeURIComponent(payload.email)}`,
+      );
     } catch {
       showToast("error", "Network error. Check your connection and try again.");
     } finally {
@@ -116,6 +107,9 @@ export default function SignupPage() {
               Sign up as {role === "MERCHANT" ? "Merchant" : "User"}
             </h2>
           </div>
+
+          <GoogleSignInButton role={role} disabled={submitting || !role} />
+          <AuthDivider />
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
@@ -173,7 +167,7 @@ export default function SignupPage() {
               disabled={submitting}
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-full font-semibold mt-6"
             >
-              {submitting ? "Creating account…" : "Create Account"}
+              {submitting ? "Sending code…" : "Create Account"}
             </Button>
           </form>
 

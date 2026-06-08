@@ -1,11 +1,13 @@
 import Credentials from "next-auth/providers/credentials";
-import db from "@repo/db";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import db, { prismaPlain } from "@repo/db";
 import { validateCredentials } from "./credentialsAuth";
-import type { ValidatedUser } from "./credentialsAuth";
 import { authSecret } from "./authSecret";
 import type { AuthOptions } from "next-auth";
 import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
+import { cookies } from "next/headers";
 
 const useSecureCookies =
   process.env.NEXTAUTH_URL?.startsWith("https://") === true;
@@ -13,7 +15,14 @@ const useSecureCookies =
 const SESSION_MAX_AGE = 8 * 60 * 60;
 const SESSION_UPDATE_AGE = 60 * 60;
 
+const SIGNUP_ROLE_COOKIE = "pakpay_signup_role";
+
+function parseSignupRole(value: string | undefined): "USER" | "MERCHANT" {
+  return value === "MERCHANT" ? "MERCHANT" : "USER";
+}
+
 export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prismaPlain),
   secret: authSecret(),
   useSecureCookies,
   session: {
@@ -28,9 +37,9 @@ export const authOptions: AuthOptions = {
         : "next-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: "none" as const,
+        sameSite: useSecureCookies ? ("none" as const) : ("lax" as const),
         path: "/",
-        secure: true,
+        secure: useSecureCookies,
       },
     },
     csrfToken: {
@@ -39,8 +48,8 @@ export const authOptions: AuthOptions = {
         : "next-auth.csrf-token",
       options: {
         httpOnly: true,
-        sameSite: "none" as const,
-        secure: true,
+        sameSite: useSecureCookies ? ("none" as const) : ("lax" as const),
+        secure: useSecureCookies,
         path: "/",
       },
     },
@@ -49,13 +58,18 @@ export const authOptions: AuthOptions = {
         ? "__Secure-next-auth.callback-url"
         : "next-auth.callback-url",
       options: {
-        sameSite: "none" as const,
-        secure: true,
+        sameSite: useSecureCookies ? ("none" as const) : ("lax" as const),
+        secure: useSecureCookies,
         path: "/",
       },
     },
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
+    }),
     Credentials({
       name: "Credentials",
       credentials: {
@@ -75,13 +89,67 @@ export const authOptions: AuthOptions = {
     }),
   ],
 
+  events: {
+    async createUser({ user }) {
+      const userId = Number(user.id);
+      if (!Number.isFinite(userId)) return;
+
+      const cookieStore = cookies();
+      const role = parseSignupRole(cookieStore.get(SIGNUP_ROLE_COOKIE)?.value);
+      const number = `oauth-${userId}-${Date.now()}`;
+
+      await prismaPlain.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            role,
+            number,
+            emailVerified: new Date(),
+          },
+        });
+
+        await tx.balance.create({
+          data: {
+            userId,
+            amount: 0,
+            locked: 0,
+          },
+        });
+
+        if (role === "MERCHANT") {
+          await tx.merchantProfile.create({
+            data: { userId },
+          });
+        }
+      });
+    },
+    async linkAccount({ user }) {
+      const userId = Number(user.id);
+      if (!Number.isFinite(userId)) return;
+
+      await prismaPlain.user.update({
+        where: { id: userId },
+        data: { emailVerified: new Date() },
+      });
+    },
+  },
+
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: unknown }) {
       if (user) {
-        const u = user as ValidatedUser;
-        token.role = u.role;
-        token.sessionVersion = u.sessionVersion ?? 0;
-        token.merchantId = u.merchantId ?? null;
+        const userId = Number((user as { id: string }).id);
+        if (Number.isFinite(userId)) {
+          const dbUser = await db.user.findUnique({
+            where: { id: userId },
+            include: { merchantProfile: { select: { id: true } } },
+          });
+
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.sessionVersion = dbUser.sessionVersion;
+            token.merchantId = dbUser.merchantProfile?.id ?? null;
+          }
+        }
       }
 
       const sub = token.sub;

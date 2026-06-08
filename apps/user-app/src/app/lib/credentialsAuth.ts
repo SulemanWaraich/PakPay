@@ -49,6 +49,13 @@ export async function validateCredentials(
     return { ok: false, message: AUTH_MESSAGES.INVALID_CREDENTIALS };
   }
 
+  if (!existingUser.password) {
+    return {
+      ok: false,
+      message: "This account uses Google sign-in. Click Continue with Google.",
+    };
+  }
+
   const passwordValid = await bcrypt.compare(password, existingUser.password);
   if (!passwordValid) {
     await recordLoginFailure(email);

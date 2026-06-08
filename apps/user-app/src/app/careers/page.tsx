@@ -2,9 +2,11 @@
 // import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Code2, Lightbulb, Settings, Check, ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 
 
-    export const meta = [
+
+    export const metadata =  [
       { title: "Careers at PakPay" },
       { name: "description", content: "Join PakPay — building the future of payments in Pakistan. Internship & graduate roles opening soon." },
       { property: "og:title", content: "Careers at PakPay" },

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
@@ -33,11 +34,16 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
           
           {/* Logo */}
-          <a href="/" className="flex items-center justify-center text-center gap-2">
-            <span className="sm:text-3xl text-2xl font-bold text-green-600 mt-2">
-              PakPay
-            </span>
-          </a>
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo2.jpg"
+              alt="PakPay"
+              width={120}
+              height={40}
+              className="h-10 w-auto object-contain"
+            />
+            <span className="text-xl font-bold text-foreground">PakPay</span>
+          </Link>
 
           {/* Desktop Navigation - SHOW ONLY ON LANDING PAGE */}
           <div className="hidden lg:flex items-center gap-8">

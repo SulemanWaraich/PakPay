@@ -4,23 +4,41 @@ import { useEffect, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Textarea } from "../../../components/ui/textArea";
+import { apiErrorMessage } from "../../lib/apiErrors";
 
 type DisputeRow = {
   id: number;
   status: string;
   reason: string;
-  MerchantTransaction: { id: number; amount: number; status: string };
+  MerchantTransaction?: { id: number; amount: number; status: string };
 };
+
+const EMPTY_STATE_MESSAGE =
+  "No disputes yet. If you have an issue with a payment, you can raise a dispute from your transaction history.";
 
 export default function UserDisputesPage() {
   const [rows, setRows] = useState<DisputeRow[]>([]);
   const [txnId, setTxnId] = useState("");
   const [reason, setReason] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const load = async () => {
-    const res = await fetch("/api/disputes");
-    if (res.ok) setRows(await res.json());
+    try {
+      const res = await fetch("/api/disputes");
+      if (!res.ok) {
+        setRows([]);
+        return;
+      }
+      const data: unknown = await res.json();
+      if (!Array.isArray(data)) {
+        setRows([]);
+        return;
+      }
+      setRows(data as DisputeRow[]);
+    } catch {
+      setRows([]);
+    }
   };
 
   useEffect(() => {
@@ -28,10 +46,11 @@ export default function UserDisputesPage() {
   }, []);
 
   const submit = async () => {
-    setMsg(null);
+    setSuccessMsg(null);
+    setErrorMsg(null);
     const id = Number.parseInt(txnId, 10);
     if (!Number.isFinite(id) || id <= 0) {
-      setMsg("Enter a valid merchant transaction ID.");
+      setErrorMsg("Enter a valid merchant transaction ID.");
       return;
     }
     const res = await fetch("/api/disputes", {
@@ -41,12 +60,12 @@ export default function UserDisputesPage() {
     });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setMsg(j.error ?? "Could not open dispute.");
+      setErrorMsg(apiErrorMessage(j, "Could not open dispute."));
       return;
     }
     setTxnId("");
     setReason("");
-    setMsg("Dispute submitted.");
+    setSuccessMsg("Dispute submitted.");
     void load();
   };
 
@@ -66,7 +85,8 @@ export default function UserDisputesPage() {
           <label className="text-sm font-medium">Reason</label>
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} />
         </div>
-        {msg && <p className="text-sm text-green-700">{msg}</p>}
+        {errorMsg && <p className="text-red-500 text-sm mt-1">{errorMsg}</p>}
+        {successMsg && <p className="text-sm text-green-700">{successMsg}</p>}
         <Button onClick={() => void submit()}>Submit dispute</Button>
       </div>
 
@@ -77,12 +97,14 @@ export default function UserDisputesPage() {
             <li key={r.id} className="border rounded p-2">
               <div className="font-medium">#{r.id} — {r.status}</div>
               <div>
-                Txn #{r.MerchantTransaction.id} — PKR {r.MerchantTransaction.amount}
+                Txn #{r.MerchantTransaction?.id ?? "—"} — PKR {r.MerchantTransaction?.amount ?? "—"}
               </div>
               <div className="text-muted-foreground">{r.reason}</div>
             </li>
           ))}
-          {rows.length === 0 && <li className="text-muted-foreground">No disputes yet.</li>}
+          {rows.length === 0 && (
+            <li className="text-muted-foreground">{EMPTY_STATE_MESSAGE}</li>
+          )}
         </ul>
       </div>
     </div>

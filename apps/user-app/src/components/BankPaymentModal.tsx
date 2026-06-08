@@ -44,7 +44,9 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
   const validate = () => {
     const next: typeof errors = {}
     if (!accountNumber) next.account = "Account number is required"
-    if (accountNumber && !/^\d{10,18}$/.test(accountNumber)) next.account = "Enter 10-18 digits"
+    if (accountNumber && (accountNumber.length < 10 || accountNumber.length > 34)) {
+      next.account = "Account number must be between 10 and 34 characters"
+    }
     if (!cvv) next.cvv = "CVV is required"
     if (cvv && !/^\d{3,4}$/.test(cvv)) next.cvv = "CVV must be 3-4 digits"
     if (!expiry) next.expiry = "Expiry is required"
@@ -159,13 +161,14 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
                   inputMode="numeric"
                   autoComplete="off"
                   className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2"
-                  placeholder="16-digit account number"
+                  placeholder="Enter your bank account number"
                   value={accountNumber}
                   onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "")
-                    setAccountNumber(v)
+                    setAccountNumber(e.target.value)
+                    setErrors((prev) => ({ ...prev, account: undefined }))
                   }}
                 />
+                <p className="text-xs text-gray-400 mt-1">Accepted: 10 to 34 digit account numbers</p>
                 {errors.account ? <p className="text-red-600 text-xs mt-1">{errors.account}</p> : null}
               </div>
 

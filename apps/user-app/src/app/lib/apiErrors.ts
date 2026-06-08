@@ -46,6 +46,9 @@ export function apiErrorMessage(
   const o = data as Record<string, unknown>;
   if (typeof o.message === "string" && o.message.trim()) return o.message;
   if (typeof o.error === "string" && o.error.trim()) return o.error;
+  if (o.error && typeof o.error === "object") {
+    return zodErrorMessage(o.error as ZodFlattened);
+  }
   return fallback;
 }
 

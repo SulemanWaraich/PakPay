@@ -36,14 +36,14 @@ export default function FilterForm({ currentType, currentStartDate, currentEndDa
     }
 
     const queryString = params.toString()
-    router.push(`/transactions${queryString ? `?${queryString}` : ""}`)
+    router.push(`/user/transactions${queryString ? `?${queryString}` : ""}`)
   }
 
   const handleClear = () => {
     setType("all")
     setStartDate("")
     setEndDate("")
-    router.push("/transactions")
+    router.push("/user/transactions")
   }
 
   const hasFilters = (type && type !== "all") || startDate || endDate

@@ -28,9 +28,17 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
       return { success: false, message: "Too many requests" }
     }
 
+    const fromUser = await prisma.user.findUnique({
+      where: { id: fromUserId },
+      select: { number: true },
+    })
+    if (fromUser?.number === to) {
+      return { success: false, message: "You cannot send money to yourself" }
+    }
+
     const user = await prisma.user.findFirst({ where: { number: to } })
     if (!user) {
-      return { success: false, message: "Receiver account not found." }
+      return { success: false, message: "No account found with this number" }
     }
 
     const amountPaisa = pkrToPaisa(amountPkr)

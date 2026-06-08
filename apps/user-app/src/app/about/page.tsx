@@ -3,11 +3,6 @@ import { BarChart3Icon, CheckCircleIcon, Users2Icon, ShieldIcon, Lightbulb, Hear
 import { ArrowRightLeft, Lock, PieChart } from "lucide-react";
 import Image from "next/image";
 import geometricImage from "../../../public/geometric-blocks.jpg"
-import jane from "../../../public/team-jane.jpg"
-import jone from "../../../public/team-john.jpg"
-import michael from "../../../public/team-michael.jpg"
-import emily from "../../../public/team-emily.jpg"
-import suleman from "../../../public/good2.jpg"
 
 export const metadata = {
   title: "About PakPay",
@@ -126,41 +121,21 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 justify-items-center">
-            {/* Team Member 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
-                <Image src={jane} alt="Suleman" className="rounded-full " />
+              <div className="w-32 h-32 rounded-full bg-green-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-3xl font-bold text-white">MS</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Jane Doe</h3>
-              <p className="text-emerald-700 text-sm">Chief Executive Officer</p>
+              <h3 className="text-lg font-semibold text-gray-900">Muhammad Suleman</h3>
+              <p className="text-emerald-700 text-sm">Founder & Full-Stack Engineer</p>
             </div>
 
-            {/* Team Member 2 */}
             <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
-                <Image src={jone} alt="John Smith" className="rounded-full" />
+              <div className="w-32 h-32 rounded-full bg-green-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-3xl font-bold text-white">F</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">John Smith</h3>
-              <p className="text-emerald-700 text-sm">Chief Technology Officer</p>
-            </div>
-
-            {/* Team Member 3 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
-                <Image src={emily} alt="Emily White" className="rounded-full" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Emily White</h3>
-              <p className="text-emerald-700 text-sm">Head of Product</p>
-            </div>
-
-            {/* Team Member 4 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
-                <Image src={michael} alt="Michael Brown" className="rounded-full" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Michael Brown</h3>
-              <p className="text-emerald-700 text-sm">Lead Engineer</p>
+              <h3 className="text-lg font-semibold text-gray-900">Fatima</h3>
+              <p className="text-emerald-700 text-sm">Co-Founder & Designer</p>
             </div>
           </div>
         </div>

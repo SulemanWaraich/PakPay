@@ -5,12 +5,42 @@ import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textArea";
 import { showToast } from "../app/lib/toastMessage";
+import { zodErrorMessage } from "../app/lib/apiErrors";
 
 type Props = {
   transactionId: number;
   hasDispute: boolean;
   canDispute: boolean;
 };
+
+function disputeErrorMessage(status: number, body: unknown): string {
+  if (status === 409) return "A dispute already exists for this transaction";
+  if (status === 404) return "Transaction not found";
+  if (status === 500) return "Something went wrong. Please try again.";
+
+  if (status === 400 && body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (typeof record.error === "string") return record.error;
+    if (record.error && typeof record.error === "object") {
+      const err = record.error as {
+        formErrors?: string[];
+        fieldErrors?: { reason?: string[] };
+      };
+      return (
+        err.formErrors?.[0] ||
+        err.fieldErrors?.reason?.[0] ||
+        zodErrorMessage(record.error as Parameters<typeof zodErrorMessage>[0])
+      );
+    }
+  }
+
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    if (typeof record.error === "string") return record.error;
+  }
+
+  return "Could not file dispute";
+}
 
 export function MerchantPaymentDisputeActions({
   transactionId,
@@ -22,6 +52,7 @@ export function MerchantPaymentDisputeActions({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   if (hasDispute) {
     return (
@@ -43,34 +74,28 @@ export function MerchantPaymentDisputeActions({
     }
     setLoading(true);
     setError(null);
+    setSuccess(false);
     try {
       const res = await fetch("/api/disputes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          merchantTransactionId: transactionId,
+          merchantTransactionId: Number(transactionId),
           reason: trimmed,
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (res.status === 409) {
-        setError("A dispute already exists for this transaction");
-        return;
-      }
       if (!res.ok) {
-        setError(
-          typeof body.error === "string"
-            ? body.error
-            : "Could not file dispute",
-        );
+        setError(disputeErrorMessage(res.status, body));
         return;
       }
       setOpen(false);
       setReason("");
-      showToast("success", "Dispute filed successfully");
+      setSuccess(true);
+      showToast("success", "Dispute submitted successfully. We'll review it within 24 hours.");
       router.refresh();
     } catch {
-      setError("Could not file dispute. Please try again.");
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -78,15 +103,22 @@ export function MerchantPaymentDisputeActions({
 
   if (!open) {
     return (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="text-xs h-8"
-        onClick={() => setOpen(true)}
-      >
-        Raise Dispute
-      </Button>
+      <div className="flex flex-col items-end gap-1">
+        {success && (
+          <p className="text-xs text-green-600">
+            Dispute submitted successfully. We&apos;ll review it within 24 hours.
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-xs h-8"
+          onClick={() => setOpen(true)}
+        >
+          Raise Dispute
+        </Button>
+      </div>
     );
   }
 
@@ -95,7 +127,10 @@ export function MerchantPaymentDisputeActions({
       <label className="text-xs font-medium">Dispute reason</label>
       <Textarea
         value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        onChange={(e) => {
+          setReason(e.target.value);
+          setError(null);
+        }}
         rows={3}
         minLength={5}
         maxLength={2000}

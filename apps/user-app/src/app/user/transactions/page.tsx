@@ -281,11 +281,15 @@ export default async function TransactionsPage({
                     <Filter className="h-12 w-12 mx-auto opacity-50" />
                   </div>
                   <p className="text-gray-500 text-lg">
-                    {hasActiveFilters ? "No transactions match your filters" : "No transactions found"}
+                    {startDate || endDate
+                      ? "No transactions found for selected date range"
+                      : hasActiveFilters
+                        ? "No transactions match your filters"
+                        : "No transactions found"}
                   </p>
                   {hasActiveFilters && (
                     <Button variant="outline" className="mt-4" asChild>
-                      <a href="/transactions">Clear all filters</a>
+                      <a href="/user/transactions">Clear all filters</a>
                     </Button>
                   )}
                 </Card>

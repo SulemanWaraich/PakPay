@@ -123,7 +123,7 @@ export default function AboutPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-200 mx-auto mb-4">
+            <div className="w-32 h-32 rounded-full bg-green-600 border-4 border-emerald-200 mx-auto mb-4 flex items-center justify-center">
             {/* <Image
               src="/suleman.png"
               alt="Suleman"

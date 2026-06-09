@@ -6,8 +6,8 @@ const bullets = [
 ];
 
 const stats = [
-  { value: "50K+", label: "Active Users" },
-  { value: "₨2B+", label: "Processed Monthly" },
+  { value: "1K+", label: "Active Users" },
+  { value: "₨1M+", label: "Processed Monthly" },
   { value: "99.9%", label: "Uptime" },
 ];
 

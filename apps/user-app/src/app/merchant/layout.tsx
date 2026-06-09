@@ -9,40 +9,74 @@ export default function Layout({
   children: React.ReactNode;
 }): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
-    <div className="flex ">
-       <button
-        className="sm:hidden px-3 py-1 absolute top-16 left-0 z-50 bg-green-600 text-white rounded-sm"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        ☰
-      </button>
-     {/* Overlay for mobile (click to close) */}
+    <div className="flex min-h-screen">
+      {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0  z-30 sm:hidden"
+          className="fixed inset-0 bg-black/20 z-30 sm:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-
+      {/* Sidebar — fixed on mobile, static flex child on desktop */}
       <div
-        className={`absolute sm:static top-16 left-0 h-full sm:h-auto transition-transform duration-300 z-40  border-slate-300 bg-white
-        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} sm:w-72 border-r border-slate-300 min-h-screen sm:pr-4 pr-2 pt-28 `}>
-            <div className="sm:w-52 w-28 ">
+        className={`
+          fixed sm:sticky sm:top-0 top-16
+          h-[calc(100vh-4rem)] sm:h-screen
+          transition-transform duration-300 z-40
+          bg-white border-r border-slate-300
+          w-50 sm:w-52 md:w-60
+          sm:translate-x-0 sm:flex-shrink-0
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          sm:pr-4 pr-2 pt-28
+        `}
+      >
+        <div className="sm:w-52 w-48">
                 <SidebarItem href={"/merchant/dashboard"} icon={<HomeIcon />} title="Home" />
                 <SidebarItem href={"/merchant/transactions"} icon={<TransactionsIcon />} title="Invoices" />
                 <SidebarItem href={"/merchant/qr-code"} icon={<P2PTransferIcon />} title="QR Code" />
                 <SidebarItem href={"/merchant/business-profile"} icon={<TransferIcon />} title="Business Profile" />
                 <SidebarItem href={"/merchant/analytics"} icon={<TransactionsIcon />} title="Analytics" />
-            </div>
         </div>
-           
-  {children}
 
-</div>
-    
+        {/* Arrow toggle — mobile only, attached to sidebar right edge */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`
+            sm:hidden
+            absolute -right-6 top-1/2 -translate-y-1/2
+            w-8 h-8 rounded-full
+            bg-green-600 text-white shadow-md
+            flex items-center justify-center
+            transition-transform duration-300
+            z-50
+          `}
+          aria-label="Toggle sidebar"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"}`}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 min-w-0 ">
+        {children}
+      </main>
+    </div>
   );
 }
 

@@ -86,8 +86,8 @@ export default async function DashboardPage() {
   
     return (
       
-          <div className="flex w-screen min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
-        <main className="flex-1 p-4">
+          <div className="min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/20">
+        <main className="flex-1 p-4 ">
           <div className="max-w-6xl mx-auto">
             {/* Greeting */}
             <div className="mb-6 sm:text-left mt-2 text-center">

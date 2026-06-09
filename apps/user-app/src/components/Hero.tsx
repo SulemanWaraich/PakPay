@@ -46,7 +46,7 @@ export function Hero() {
         <div>
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-[#16a34a]" />
-            Trusted by 50,000+ Pakistanis
+            Trusted by 1000+ Pakistanis
           </div>
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
             The Smarter Way to

@@ -76,7 +76,7 @@ export function Footer() {
                 </Link>
               </li>
             </ul>
-            <div className="flex items-center justify-center  gap-4 mt-8">
+            {/* <div className="flex items-center justify-center  gap-4 mt-8">
               <Link
                 href="#"
                 className="w-8 h-8 rounded-full bg-brand-green/10 flex bg-pakpay-green-light items-center justify-center text-brand-green hover:bg-brand-green hover:text-white transition-all"
@@ -101,7 +101,7 @@ export function Footer() {
               >
                 <Instagram className="w-4 h-4 text-pakpay-green group-hover:text-primary-foreground transition-colors" />
               </Link>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* <div className="text-center pt-10 border-t border-gray-200">

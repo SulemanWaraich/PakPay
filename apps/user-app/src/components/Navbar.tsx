@@ -29,7 +29,7 @@ const Navbar = () => {
       : "/user/dashboard";
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border bg-gray-100">
       <div className="container-max section-padding">
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
           
@@ -52,7 +52,7 @@ const Navbar = () => {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
+                  className=" hover:text-foreground transition-colors text-sm font-medium text-green-600"
                 >
                   {link.name}
                 </a>

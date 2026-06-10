@@ -186,7 +186,7 @@ export default function SignInPage() {
           <div className="text-center">
             <div className="flex justify-center items-center space-x-2">
               <p>Don't have an account?</p>
-            <Link href="/api/selector">
+            <Link href="/auth/onBoarding">
               <Button
                 variant="outline"
                 className=" border-green-600 text-green-600 hover:bg-green-50 py-1 rounded-full text-base font-semibold bg-transparent"

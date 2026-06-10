@@ -29,7 +29,7 @@ export default function SignupPage() {
 
     if (!role) {
       showToast("warning", "Choose whether you are signing up as a User or Merchant.");
-      router.push("/api/selector");
+      router.push("/auth/onBoarding");
       return;
     }
 

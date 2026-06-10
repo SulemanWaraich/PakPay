@@ -9,7 +9,7 @@ export function Hero() {
 
   const handleGetStarted = () => {
     if (!session) {
-      router.push("/api/selector");
+      router.push("/auth/onBoarding");
       return;
     }
     if (session.user.role === "USER") {

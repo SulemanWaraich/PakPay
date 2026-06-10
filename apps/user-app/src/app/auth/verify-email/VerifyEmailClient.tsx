@@ -121,7 +121,7 @@ export default function VerifyEmailClient() {
     const pending = readPendingRegistration();
     if (!pending) {
       showToast("error", "Registration session expired. Please sign up again.");
-      router.push("/api/selector");
+      router.push("/auth/onBoarding");
       return;
     }
 
@@ -200,7 +200,7 @@ export default function VerifyEmailClient() {
             </Button>
             <p className="text-sm text-gray-600">
               Wrong email?{" "}
-              <Link href="/api/selector" className="text-green-600 hover:underline">
+              <Link href="/auth/onBoarding" className="text-green-600 hover:underline">
                 Start over
               </Link>
             </p>

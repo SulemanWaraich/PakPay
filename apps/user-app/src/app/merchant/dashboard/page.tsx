@@ -31,7 +31,7 @@ export default async function MerchantDashboardPage() {
     })
 
     if (!merchant) {
-      redirect("/api/selector")
+      redirect("/auth/onBoarding")
     }
 
     const [balanceRow, pendingSettlementResult] = await Promise.all([

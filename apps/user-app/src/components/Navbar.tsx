@@ -69,7 +69,7 @@ const Navbar = () => {
                     Log In
                   </p>
                 </Link>
-                <Link href="/api/selector">
+                <Link href="/auth/onBoarding">
                   <Button variant="outline" size="sm">
                     Get Started
                   </Button>

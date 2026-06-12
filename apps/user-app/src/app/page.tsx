@@ -22,7 +22,7 @@ export default async function Page() {
         <WhyPakPay />
         <HowItWorks />
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

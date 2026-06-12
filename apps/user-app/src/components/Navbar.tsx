@@ -29,7 +29,7 @@ const Navbar = () => {
       : "/user/dashboard";
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border bg-gray-100">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-green-100 shadow-sm">
       <div className="container-max section-padding">
         <div className="flex items-center justify-between h-16 lg:h-20 px-4">
           
@@ -135,7 +135,7 @@ const Navbar = () => {
                       </p>
                     </Link>
                     <Link href="/auth/selector">
-                      <Button variant="pakpay-outline" size="sm" className="w-fit">
+                      <Button variant="pakpay-outline" size="sm"  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 border-0">
                         Get Started
                       </Button>
                     </Link>
@@ -143,7 +143,7 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Link href={dashboardHref}>
-                      <Button variant="pakpay-outline" size="sm" className="w-fit">
+                      <Button variant="pakpay-outline" size="sm" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 border-0">
                         Dashboard
                       </Button>
                     </Link>

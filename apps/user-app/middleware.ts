@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { authSecret } from "./src/app/lib/authSecret";
 
-type Role = "USER" | "MERCHANT" | "ADMIN";
+type Role = "PENDING" | "USER" | "MERCHANT" | "ADMIN";
 
 function redirect(req: NextRequest, pathname: string, search?: Record<string, string>) {
   const url = new URL(pathname, req.url);
@@ -34,6 +34,23 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  const isPendingAllowed =
+    pathname === "/select-account" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/");
+
+  if (!isPendingAllowed) {
+    const pendingToken = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (pendingToken?.role === "PENDING") {
+      return redirect(request, "/select-account");
+    }
+  }
+
   const isMerchant = pathname.startsWith("/merchant");
   const isUser = pathname.startsWith("/user");
   const isAdmin = pathname.startsWith("/admin");
@@ -80,7 +97,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

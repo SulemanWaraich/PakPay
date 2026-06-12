@@ -22,7 +22,7 @@ export default function AccountSelector() {
 
       if (res.ok) {
         await update()
-        router.push(role === "MERCHANT" ? "/merchant/dashboard" : "/user/dashboard")
+        window.location.href = "/auth/relay"
       } else {
         setLoading(null)
         alert("Something went wrong. Please try again.")

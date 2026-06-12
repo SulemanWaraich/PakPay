@@ -10,7 +10,9 @@ export default function PostLoginRedirect() {
   useEffect(() => {
     if (status !== "authenticated") return;
 
-    if (session.user.role === "MERCHANT") {
+    if (session.user.role === "PENDING") {
+      router.replace("/select-account");
+    } else if (session.user.role === "MERCHANT") {
       router.replace("/merchant/dashboard");
     } else {
       router.replace("/user/dashboard");

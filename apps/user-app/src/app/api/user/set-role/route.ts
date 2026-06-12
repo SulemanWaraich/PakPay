@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../../lib/auth"; // adjust path to your authOptions
+import { authOptions } from "../../../lib/auth";
 import { prismaPlain } from "@repo/db";
 import { NextResponse } from "next/server";
 
@@ -18,20 +18,24 @@ export async function POST(req: Request) {
 
   const userId = Number(session.user.id);
 
-  await prismaPlain.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id: userId },
-      data: { role },
-    });
-
-    if (role === "MERCHANT") {
-      await tx.merchantProfile.upsert({
-        where: { userId },
-        create: { userId },
-        update: {},
-      });
-    }
+  await prismaPlain.user.update({
+    where: { id: userId },
+    data: { role },
   });
+
+  await prismaPlain.balance.upsert({
+    where: { userId },
+    create: { userId, amount: 0, locked: 0 },
+    update: {},
+  });
+
+  if (role === "MERCHANT") {
+    await prismaPlain.merchantProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

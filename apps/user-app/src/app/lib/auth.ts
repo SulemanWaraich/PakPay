@@ -95,30 +95,42 @@ export const authOptions: AuthOptions = {
       if (!Number.isFinite(userId)) return;
 
       const cookieStore = cookies();
-      const role = parseSignupRole(cookieStore.get(SIGNUP_ROLE_COOKIE)?.value);
+      const signupRoleCookie = cookieStore.get(SIGNUP_ROLE_COOKIE)?.value;
       const number = `oauth-${userId}-${Date.now()}`;
 
       await prismaPlain.$transaction(async (tx) => {
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            role,
-            number,
-            emailVerified: new Date(),
-          },
-        });
+        if (signupRoleCookie !== undefined) {
+          const role = parseSignupRole(signupRoleCookie);
 
-        await tx.balance.create({
-          data: {
-            userId,
-            amount: 0,
-            locked: 0,
-          },
-        });
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              role,
+              number,
+              emailVerified: new Date(),
+            },
+          });
 
-        if (role === "MERCHANT") {
-          await tx.merchantProfile.create({
-            data: { userId },
+          await tx.balance.create({
+            data: {
+              userId,
+              amount: 0,
+              locked: 0,
+            },
+          });
+
+          if (role === "MERCHANT") {
+            await tx.merchantProfile.create({
+              data: { userId },
+            });
+          }
+        } else {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              number,
+              emailVerified: new Date(),
+            },
           });
         }
       });
@@ -135,7 +147,37 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: unknown }) {
+    async jwt({
+      token,
+      user,
+      account,
+    }: {
+      token: JWT;
+      user?: unknown;
+      account?: unknown;
+    }) {
+      // Google OAuth: re-fetch from DB to get role set by createUser event
+      if (
+        (account as { provider?: string } | undefined)?.provider === "google" &&
+        user
+      ) {
+        const userId = Number((user as { id: string }).id);
+        if (Number.isFinite(userId)) {
+          const dbUser = await db.user.findUnique({
+            where: { id: userId },
+            include: { merchantProfile: { select: { id: true } } },
+          });
+
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.sessionVersion = dbUser.sessionVersion;
+            token.merchantId = dbUser.merchantProfile?.id ?? null;
+          }
+        }
+        return token;
+      }
+
+      // Credentials sign-in: populate token from DB
       if (user) {
         const userId = Number((user as { id: string }).id);
         if (Number.isFinite(userId)) {
@@ -152,6 +194,26 @@ export const authOptions: AuthOptions = {
         }
       }
 
+      // PENDING re-fetch: on every token refresh, re-read role from DB if still PENDING.
+      // This fires when update() is called from the relay/AccountSelector page,
+      // ensuring the token picks up the role set by /api/user/set-role.
+      if (token.role === "PENDING" && token.sub) {
+        const dbUser = await db.user.findUnique({
+          where: { id: Number(token.sub) },
+          select: {
+            role: true,
+            sessionVersion: true,
+            merchantProfile: { select: { id: true } },
+          },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.sessionVersion = dbUser.sessionVersion;
+          token.merchantId = dbUser.merchantProfile?.id ?? null;
+        }
+      }
+
+      // Session version invalidation check
       const sub = token.sub;
       if (sub) {
         const dbUser = await db.user.findUnique({

@@ -18,7 +18,7 @@ model User {
   sessionVersion     Int                   @default(0)
   resetTokenExpiry   DateTime?
   resetTokenHash     String?
-  role               UserRole              @default(USER)
+  role               UserRole              @default(PENDING)
   image              String?
   Balance            Balance?
   Dispute            Dispute[]
@@ -206,6 +206,7 @@ model Balance {
 }
 
 enum UserRole {
+  PENDING
   USER
   MERCHANT
   ADMIN

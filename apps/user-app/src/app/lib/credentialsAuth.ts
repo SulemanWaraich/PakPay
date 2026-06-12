@@ -11,7 +11,7 @@ export type ValidatedUser = {
   id: string;
   name: string | null;
   email: string | null;
-  role: "USER" | "MERCHANT" | "ADMIN";
+  role: "PENDING" | "USER" | "MERCHANT" | "ADMIN";
   sessionVersion: number;
   merchantId: number | null;
 };

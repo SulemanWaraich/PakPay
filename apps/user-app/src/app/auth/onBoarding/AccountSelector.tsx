@@ -21,8 +21,9 @@ export default function AccountSelector() {
       })
 
       if (res.ok) {
-        await update()
-        window.location.href = "/auth/relay"
+        await update({ role })
+        window.location.href =
+          role === "MERCHANT" ? "/merchant/dashboard" : "/user/dashboard"
       } else {
         setLoading(null)
         alert("Something went wrong. Please try again.")
@@ -101,6 +102,14 @@ export default function AccountSelector() {
           </div>
         </div>
       </div>
+      {loading && (
+  <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+    <div className="w-12 h-12 border-4 border-green-200 border-t-green-500 rounded-full animate-spin mb-4"></div>
+    <p className="text-gray-700 font-medium text-lg">
+      Setting up your {loading === "MERCHANT" ? "merchant" : "user"} account...
+    </p>
+  </div>
+)}
     </div>
   )
 }

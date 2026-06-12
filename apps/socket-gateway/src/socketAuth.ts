@@ -56,6 +56,12 @@ export async function verifySocketToken(
     return null;
   }
 
+  // PENDING users haven't completed account setup (no balance/merchant profile)
+  // and should not be allowed socket connections.
+  if (dbUser.role === "PENDING") {
+    return null;
+  }
+
   const roleFromToken = payload.role;
   const role =
     roleFromToken === "USER" ||

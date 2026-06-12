@@ -151,11 +151,30 @@ export const authOptions: AuthOptions = {
       token,
       user,
       account,
+      trigger,
+      session,
     }: {
       token: JWT;
       user?: unknown;
       account?: unknown;
+      trigger?: string;
+      session?: unknown;
     }) {
+      if (trigger === "update" && session) {
+        const newRole = (session as { role?: string }).role;
+        if (newRole === "USER" || newRole === "MERCHANT") {
+          token.role = newRole;
+          if (newRole === "MERCHANT" && token.sub) {
+            const dbUser = await db.user.findUnique({
+              where: { id: Number(token.sub) },
+              select: { merchantProfile: { select: { id: true } } },
+            });
+            token.merchantId = dbUser?.merchantProfile?.id ?? null;
+          }
+        }
+        return token;
+      }
+
       // Google OAuth: re-fetch from DB to get role set by createUser event
       if (
         (account as { provider?: string } | undefined)?.provider === "google" &&
@@ -191,25 +210,6 @@ export const authOptions: AuthOptions = {
             token.sessionVersion = dbUser.sessionVersion;
             token.merchantId = dbUser.merchantProfile?.id ?? null;
           }
-        }
-      }
-
-      // PENDING re-fetch: on every token refresh, re-read role from DB if still PENDING.
-      // This fires when update() is called from the relay/AccountSelector page,
-      // ensuring the token picks up the role set by /api/user/set-role.
-      if (token.role === "PENDING" && token.sub) {
-        const dbUser = await db.user.findUnique({
-          where: { id: Number(token.sub) },
-          select: {
-            role: true,
-            sessionVersion: true,
-            merchantProfile: { select: { id: true } },
-          },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.sessionVersion = dbUser.sessionVersion;
-          token.merchantId = dbUser.merchantProfile?.id ?? null;
         }
       }
 

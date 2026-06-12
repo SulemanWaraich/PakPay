@@ -20,6 +20,7 @@ const DEMO_EMAILS = [
   "demo.merchant2@pakpay.site",
   "demo.admin@pakpay.site",
   "demo.user2@pakpay.site",
+  "admin@pakpay.site",   // 👈 add this
 ] as const;
 
 /** PKR → paisa */
@@ -270,6 +271,42 @@ async function main() {
       toUserId: sara.id,
       amount: pkr(1_000),
       timestamp: daysAgo(12),
+    },
+  });
+
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: usman.id,
+      toUserId: sara.id,
+      amount: pkr(2_500),
+      timestamp: daysAgo(26),
+    },
+  });
+  
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: sara.id,
+      toUserId: usman.id,
+      amount: pkr(1_800),
+      timestamp: daysAgo(14),
+    },
+  });
+  
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: usman.id,
+      toUserId: sara.id,
+      amount: pkr(3_000),
+      timestamp: daysAgo(9),
+    },
+  });
+  
+  await prisma.p2pTransfer.create({
+    data: {
+      fromUserId: sara.id,
+      toUserId: usman.id,
+      amount: pkr(700),
+      timestamp: daysAgo(3),
     },
   });
 

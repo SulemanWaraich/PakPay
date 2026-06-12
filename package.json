@@ -35,6 +35,7 @@
     "@tanstack/react-router": "^1.161.3",
     "@types/pdfkit": "^0.17.6",
     "cloudinary": "^2.9.0",
+    "framer-motion": "^12.40.0",
     "mailer": "^0.6.7",
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.18.0",

@@ -1,115 +1,242 @@
 "use client"
 
-import { User, Store } from "lucide-react"
-import { useState } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Wallet, Store, Check, ArrowRight } from 'lucide-react';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
+type AccountType = 'USER' | 'MERCHANT' | null;
+
+const personalFeatures = [
+  'Send & receive money instantly',
+  'Debit card with cashback',
+  'Budgeting & analytics',
+];
+
+const merchantFeatures = [
+  'Accept payments globally',
+  'Invoicing & payouts',
+  'Multi-currency accounts',
+];
+
+function SelectorCard({
+  selected,
+  onSelect,
+  icon: Icon,
+  title,
+  description,
+  features,
+  isPopular,
+  delay,
+  disabled,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  features: string[];
+  isPopular: boolean;
+  delay: number;
+  disabled: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+      whileHover={!disabled ? { scale: 1.02 } : {}}
+      onClick={!disabled ? onSelect : undefined}
+      className={`
+        relative rounded-2xl border bg-white p-10 transition-shadow
+        ${isPopular ? 'mt-3' : ''}
+        ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+        ${
+          selected
+            ? 'border-l-[4px] border-l-[#00C853] border-[#00C853] shadow-md ring-2 ring-[#00C853] ring-offset-2'
+            : 'border-[#E2EBE6] hover:border-[#00C853] hover:shadow-md'
+        }
+      `}
+      style={
+        selected
+          ? { background: 'radial-gradient(circle at 50% 0%, rgba(0,200,83,0.06) 0%, #FFFFFF 70%)' }
+          : undefined
+      }
+    >
+      {/* Most Popular Badge */}
+      {isPopular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-[#00C853] text-white text-xs font-semibold rounded-full px-3 py-1 whitespace-nowrap">
+            Most Popular
+          </span>
+        </div>
+      )}
+
+      {/* Selection Checkmark */}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            key="checkmark"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#00C853] flex items-center justify-center"
+          >
+            <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Icon */}
+      <div className="w-14 h-14 rounded-2xl bg-[#E8FDF0] flex items-center justify-center mb-5">
+        <Icon className="w-7 h-7 text-[#00C853]" />
+      </div>
+
+      <h3 className="text-xl font-semibold text-[#111827] mb-2">{title}</h3>
+      <p className="text-[15px] text-[#6B7280] mb-6">{description}</p>
+
+      {/* Feature List */}
+      <div className="border-t border-[#E2EBE6] pt-6 space-y-4">
+        {features.map((feature) => (
+          <div key={feature} className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-[#E8FDF0] flex items-center justify-center flex-shrink-0">
+              <Check className="w-3 h-3 text-[#00C853]" strokeWidth={3} />
+            </div>
+            <span className="text-[15px] text-[#374151]">{feature}</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AccountSelector() {
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
-  const [loading, setLoading] = useState<string | null>(null)
-  const { data: session, update } = useSession()
-  const router = useRouter()
+  const [selected, setSelected] = useState<AccountType>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+  const { data: session, update } = useSession();
+  const router = useRouter();
 
   async function handleRoleSelect(role: "USER" | "MERCHANT") {
     if (session?.user) {
-      setLoading(role)
+      setLoading(role);
       const res = await fetch("/api/user/set-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
-      })
+      });
 
       if (res.ok) {
-        await update({ role })
+        await update({ role });
         window.location.href =
-          role === "MERCHANT" ? "/merchant/dashboard" : "/user/dashboard"
+          role === "MERCHANT" ? "/merchant/dashboard" : "/user/dashboard";
       } else {
-        setLoading(null)
-        alert("Something went wrong. Please try again.")
+        setLoading(null);
+        alert("Something went wrong. Please try again.");
       }
-      return
+      return;
     }
 
-    router.push(`/auth/signup?role=${role}`)
+    router.push(`/auth/signup?role=${role}`);
   }
 
   return (
-    <div className="w-full">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 mt-4">
-          Choose Your PakPay Account
-        </h1>
-        <p className="text-gray-600 text-lg">
-          Select how you want to use our platform to get started.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#F7FAF8]">
+      <main className="max-w-4xl mx-auto px-6 pt-16 pb-24">
 
-      <div className="grid md:grid-cols-2 gap-8 px-16">
-        {/* User Card */}
-        <div
-          className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
-          onMouseEnter={() => setHoveredCard("user")}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 bg-green-200 rounded-full flex items-center justify-center mb-6">
-              <User className="w-12 h-12 text-green-700" strokeWidth={1.5} />
-            </div>
-            <p className="text-sm text-gray-600 mb-2">Register as User</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">For Individuals</h2>
-            <p className="text-center text-gray-600 mb-8 leading-relaxed">
-              Pay bills, transfer money, and shop online securely with ease.
-              Manage your personal finances in one place.
-            </p>
-            <button
-              onClick={() => handleRoleSelect("USER")}
-              disabled={loading !== null}
-              className={`w-full py-3 px-6 bg-green-400 hover:bg-green-500 text-gray-900 font-semibold rounded-full transition-all duration-300 disabled:opacity-60 ${
-                hoveredCard === "user" ? "shadow-lg scale-105" : "shadow-md"
-              }`}
-            >
-              {loading === "USER" ? "Setting up..." : "Select User Account"}
-            </button>
+        {/* Heading */}
+        <div className="text-center mb-12">
+          <div className="inline-block relative">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#111827] leading-tight">
+            How will you use PakPay?
+
+            </h1>
+            <motion.div
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 }}
+              className="h-1 bg-[#00C853] rounded-full mt-2"
+            />
           </div>
+          <p className="mt-4 text-[#6B7280] text-base md:text-lg">
+            Pick the account that fits. You can upgrade or switch anytime.
+          </p>
         </div>
 
-        {/* Merchant Card */}
-        <div
-          className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
-          onMouseEnter={() => setHoveredCard("merchant")}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 bg-green-200 rounded-full flex items-center justify-center mb-6">
-              <Store className="w-12 h-12 text-green-700" strokeWidth={1.5} />
-            </div>
-            <p className="text-sm text-gray-600 mb-2">Register as Merchant</p>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">For Businesses</h2>
-            <p className="text-center text-gray-600 mb-8 leading-relaxed">
-              Accept payments, manage transactions, and grow your business with
-              our robust tools and analytics.
-            </p>
-            <button
-              onClick={() => handleRoleSelect("MERCHANT")}
-              disabled={loading !== null}
-              className={`w-full py-3 px-6 bg-green-400 hover:bg-green-500 text-gray-900 font-semibold rounded-full transition-all duration-300 disabled:opacity-60 ${
-                hoveredCard === "merchant" ? "shadow-lg scale-105" : "shadow-md"
-              }`}
-            >
-              {loading === "MERCHANT" ? "Setting up..." : "Select Merchant Account"}
-            </button>
-          </div>
+        {/* Selector Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+          <SelectorCard
+            selected={selected === 'USER'}
+            onSelect={() => setSelected('USER')}
+            icon={Wallet}
+            title="Personal"
+            description="For everyday spending, saving, and sending money to friends."
+            features={personalFeatures}
+            isPopular={false}
+            delay={0}
+            disabled={loading !== null}
+          />
+          <SelectorCard
+            selected={selected === 'MERCHANT'}
+            onSelect={() => setSelected('MERCHANT')}
+            icon={Store}
+            title="Merchant"
+            description="For businesses that need to accept payments and manage cash flow."
+            features={merchantFeatures}
+            isPopular={true}
+            delay={0.1}
+            disabled={loading !== null}
+          />
         </div>
-      </div>
-      {loading && (
-  <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
-    <div className="w-12 h-12 border-4 border-green-200 border-t-green-500 rounded-full animate-spin mb-4"></div>
-    <p className="text-gray-700 font-medium text-lg">
-      Setting up your {loading === "MERCHANT" ? "merchant" : "user"} account...
-    </p>
-  </div>
-)}
+
+        {/* Continue Button + Trust Line */}
+        <div className="flex flex-col items-center gap-4">
+          <motion.button
+            animate={{
+              backgroundColor: selected && !loading ? '#00C853' : '#FFFFFF',
+              color: selected && !loading ? '#FFFFFF' : '#9CA3AF',
+            }}
+            transition={{ duration: 0.3 }}
+            whileTap={selected && !loading ? { scale: 0.97 } : {}}
+            disabled={!selected || loading !== null}
+            onClick={() => selected && handleRoleSelect(selected)}
+            className={`
+              w-full max-w-[480px] rounded-full py-4 text-lg font-semibold
+              flex items-center justify-center gap-2 transition-colors
+              ${selected && !loading
+                ? 'cursor-pointer'
+                : 'border border-gray-200 cursor-not-allowed'
+              }
+            `}
+          >
+            {loading ? 'Setting up...' : 'Continue'}
+            {selected && !loading && <ArrowRight className="w-5 h-5" />}
+          </motion.button>
+
+          <p className="text-xs text-[#6B7280] text-center">
+            256-bit encryption &middot; No credit check &middot; Setup in 2 minutes
+          </p>
+        </div>
+      </main>
+
+      {/* Full-screen Loading Overlay */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50"
+          >
+            <div className="w-12 h-12 border-4 border-green-200 border-t-[#00C853] rounded-full animate-spin mb-4" />
+            <p className="text-gray-700 font-medium text-lg">
+              Setting up your {loading === "MERCHANT" ? "merchant" : "user"} account...
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  )
+  );
 }

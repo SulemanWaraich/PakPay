@@ -1,4 +1,4 @@
-export default function MerchantTransactionsLoading() {
+export default function MerchantAnalyticsLoading() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card px-8 py-6 shadow-md">
@@ -8,7 +8,7 @@ export default function MerchantTransactionsLoading() {
 
         {/* Text */}
         <p className="text-sm font-medium text-muted-foreground">
-          Loading your Invoices…
+          Loading your Analytics…
         </p>
       </div>
     </div>

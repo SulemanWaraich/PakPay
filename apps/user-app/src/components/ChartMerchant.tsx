@@ -27,13 +27,21 @@ export default function ActivityChart({ data }: any) {
           <XAxis dataKey="date" />
           <YAxis />
           <Tooltip />
+          <Legend />
 
           <Line
             type="monotone"
             dataKey="revenue"
             name="Revenue"
             stroke="#22c55e"
-            strokeWidth={3}
+            strokeWidth={2}
+          />
+          <Line
+            type="monotone"
+            dataKey="settled"
+            name="Settled Payout"
+            stroke="#f97316"
+            strokeWidth={2}
           />
         </LineChart>
       </ResponsiveContainer>

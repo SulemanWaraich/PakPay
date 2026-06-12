@@ -11,7 +11,6 @@ import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 import MerchantDashboardClientWrapper from "../../../components/MerchantDashboardClientWrapper"
 import TopCustomers from "../../../components/TopCustomers"
-// import KycProgressTracker from "../../../components/merchant/KycProgressTracker"
 import { paisaToPkr } from "../../lib/money"
 import { availableBalancePaisa } from "../../lib/balance"
 
@@ -54,18 +53,28 @@ export default async function MerchantDashboardPage() {
     )
     const pendingSettlement = pendingSettlementResult._sum.amount ?? 0
 
-    const transactions = await prisma.merchantTransaction.findMany({
-      where: {
-        merchantId: merchant.id,
-        status: "SUCCESS",
-      },
-      include: {
-        customer: {
-          select: { name: true },
+    const [transactions, settledTransactions] = await Promise.all([
+      prisma.merchantTransaction.findMany({
+        where: {
+          merchantId: merchant.id,
+          status: "SUCCESS",
         },
-      },
-      orderBy: { createdAt: "asc" },
-    })
+        include: {
+          customer: {
+            select: { name: true },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.merchantTransaction.findMany({
+        where: {
+          merchantId: merchant.id,
+          status: "SUCCESS",
+          settled: true,
+        },
+        orderBy: { settledAt: "asc" },
+      }),
+    ])
 
     const now = new Date()
 
@@ -76,10 +85,24 @@ export default async function MerchantDashboardPage() {
       dailyRevenue[date] = (dailyRevenue[date] || 0) + txn.amount
     })
 
-    const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({
-      date,
-      revenue: paisaToPkr(revenue),
-    }))
+    const dailySettled: Record<string, number> = {}
+    settledTransactions.forEach(txn => {
+      if (!txn.settledAt) return
+      const date = txn.settledAt.toISOString().split("T")[0]
+      dailySettled[date] = (dailySettled[date] || 0) + txn.amount
+    })
+
+    const allDates = new Set([
+      ...Object.keys(dailyRevenue),
+      ...Object.keys(dailySettled),
+    ])
+    const chartData = Array.from(allDates)
+      .sort()
+      .map(date => ({
+        date,
+        revenue: paisaToPkr(dailyRevenue[date] || 0),
+        settled: paisaToPkr(dailySettled[date] || 0),
+      }))
 
     // 📆 Monthly revenue
     const monthlyRevenue = transactions
@@ -150,12 +173,7 @@ export default async function MerchantDashboardPage() {
         <main className="flex-1 p-4">
           <div className="max-w-6xl mx-auto">
 
-             {/* <KycProgressTracker
-              kycStatus={merchant.kycStatus}
-              businessName={merchant.businessName}
-              kycReviewNote={merchant.kycReviewNote}
-            />  */}
-
+           
             {/* Greeting */}
             <div className="flex justify-between items-center mb-6">
               <div>

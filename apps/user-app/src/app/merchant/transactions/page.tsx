@@ -84,13 +84,13 @@ export default function MerchantTransactionsPage() {
     a.click();
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex justify-center py-20">
+  //       <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-8 w-full mx-4">

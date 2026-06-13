@@ -12,6 +12,7 @@ type Mode = "deposit" | "withdraw" | "consumer-payment" | "business-payment" | "
 type Props = {
   isOpen: boolean
   onClose: () => void // will auto-call on success
+  onSuccess?: () => void
   bankKey: BankKey
   amount: number
   mode: Mode
@@ -19,7 +20,7 @@ type Props = {
   onPersist?: () => Promise<void>
 }
 
-export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPersist }: Props) {
+export function BankPaymentModal({ isOpen, onClose, onSuccess, bankKey, amount, mode, onPersist }: Props) {
   const theme = useMemo(() => bankThemes[bankKey], [bankKey])
   const [accountNumber, setAccountNumber] = useState("")
   const [cvv, setCvv] = useState("")
@@ -27,6 +28,7 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
   const [errors, setErrors] = useState<{ account?: string; cvv?: string; expiry?: string }>({})
   const [loading, setLoading] = useState(false)
   const [succeeded, setSucceeded] = useState(false)
+  const [readOnlyFields, setReadOnlyFields] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
       setErrors({})
       setLoading(false)
       setSucceeded(false)
+      setReadOnlyFields(true)
     }
   }, [isOpen])
 
@@ -75,6 +78,7 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
         if (onPersist) await onPersist();
 
         setSucceeded(true);
+        onSuccess?.();
         showToast(
           "success",
           `Transaction successful! PKR ${amount} ${
@@ -149,6 +153,7 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
 
           {!succeeded ? (
             <form
+              autoComplete="off"
               onSubmit={(e) => {
                 e.preventDefault()
                 proceed()
@@ -159,7 +164,10 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
                 <label className="block text-sm mb-1">Account Number</label>
                 <input
                   inputMode="numeric"
+                  name="bank-ref"
                   autoComplete="off"
+                  readOnly={readOnlyFields}
+                  onFocus={() => setReadOnlyFields(false)}
                   className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2"
                   placeholder="Enter your bank account number"
                   value={accountNumber}
@@ -178,6 +186,10 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
                   <input
                     type="password"
                     inputMode="numeric"
+                    name="bank-cvc-ref"
+                    autoComplete="new-password"
+                    readOnly={readOnlyFields}
+                    onFocus={() => setReadOnlyFields(false)}
                     className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2"
                     placeholder="3-4 digits"
                     value={cvv}
@@ -191,6 +203,10 @@ export function BankPaymentModal({ isOpen, onClose, bankKey, amount, mode, onPer
                 <div>
                   <label className="block text-sm mb-1">Expiry (MM/YY)</label>
                   <input
+                    name="bank-expiry-ref"
+                    autoComplete="off"
+                    readOnly={readOnlyFields}
+                    onFocus={() => setReadOnlyFields(false)}
                     className="w-full rounded-md border px-3 py-2 outline-none focus:ring-2"
                     placeholder="MM/YY"
                     value={expiry}

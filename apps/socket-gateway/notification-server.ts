@@ -145,6 +145,15 @@ async function startServer() {
         }
         break;
 
+      case "p2pTransferAdded":
+        if (data.fromUserId != null) {
+          io.to(`user-${data.fromUserId}`).emit("p2pTransferAdded", data);
+        }
+        if (data.toUserId != null) {
+          io.to(`user-${data.toUserId}`).emit("p2pTransferAdded", data);
+        }
+        break;
+
       default:
         logger.warn("Unhandled Redis event type", { type: data.type });
     }

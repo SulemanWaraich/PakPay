@@ -1,11 +1,20 @@
 "use client"
 import { Button, Card, Select, TextInput } from "@repo/ui"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { BankPaymentModal } from "./BankPaymentModal"
 import { type BankKey, bankThemes } from "./bank-themes"
 import { apiErrorMessage } from "../app/lib/apiErrors"
+import BranchSelect from "./BranchSelect"
 
 const BANK_KEYS: BankKey[] = ["HBL", "UBL", "MEEZAN"]
+
+const DEMO_WITHDRAW = {
+  accountHolderName: "Sara Malik",
+  bankName: "HBL" as BankKey,
+  accountNumber: "01234567890123",
+  branch: "Karachi Main Branch",
+}
 
 function parsePositiveAmount(value: string): number | null {
   const trimmed = value.trim()
@@ -16,6 +25,7 @@ function parsePositiveAmount(value: string): number | null {
 }
 
 export const WithdrawMoney = () => {
+  const router = useRouter()
   const [amount, setAmount] = useState("")
   const [bankKey, setBankKey] = useState<BankKey>("HBL")
   const [accountHolderName, setAccountHolderName] = useState("")
@@ -23,6 +33,7 @@ export const WithdrawMoney = () => {
   const [branch, setBranch] = useState("")
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [errors, setErrors] = useState<{
     amount?: string
     accountHolderName?: string
@@ -33,6 +44,19 @@ export const WithdrawMoney = () => {
 
   const options = useMemo(() => BANK_KEYS.map((k) => ({ key: k, value: bankThemes[k].displayName })), [])
 
+  const resetForm = () => {
+    setAmount("")
+    setBankKey("HBL")
+    setAccountHolderName("")
+    setAccountNumber("")
+    setBranch("")
+    setErrors({})
+  }
+
+  useEffect(() => {
+    setBranch("")
+  }, [bankKey])
+
   const clearError = (field: keyof typeof errors) => {
     setErrors((prev) => {
       const next = { ...prev }
@@ -40,6 +64,15 @@ export const WithdrawMoney = () => {
       delete next.form
       return next
     })
+  }
+
+  const applyDemoPrefill = () => {
+    setAccountHolderName(DEMO_WITHDRAW.accountHolderName)
+    setBankKey(DEMO_WITHDRAW.bankName)
+    setAccountNumber(DEMO_WITHDRAW.accountNumber)
+    setBranch(DEMO_WITHDRAW.branch)
+    setSuccessMessage("")
+    setErrors({})
   }
 
   const validate = (): boolean => {
@@ -140,9 +173,23 @@ export const WithdrawMoney = () => {
   return (
     <Card title="Withdraw Money">
       <div className="w-full space-y-3 p-2">
+        {successMessage && (
+          <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{successMessage}</p>
+        )}
         {errors.form && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{errors.form}</p>
         )}
+
+        <div>
+          <p className="text-xs text-gray-500 mb-2">Demo quick-fill:</p>
+          <button
+            type="button"
+            onClick={applyDemoPrefill}
+            className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full cursor-pointer hover:bg-green-50 hover:text-green-700"
+          >
+            Sara Malik · HBL · Karachi Main Branch
+          </button>
+        </div>
 
         <div>
           <TextInput
@@ -175,11 +222,11 @@ export const WithdrawMoney = () => {
           )}
         </div>
 
-        <TextInput
-          label="Branch (optional)"
-          placeholder="City / branch"
+        <BranchSelect
+          key={bankKey}
+          bankKey={bankKey}
           value={branch}
-          onChange={(value) => setBranch(value)}
+          onChange={setBranch}
         />
 
         <div>
@@ -216,6 +263,11 @@ export const WithdrawMoney = () => {
       <BankPaymentModal
         isOpen={open}
         onClose={() => setOpen(false)}
+        onSuccess={() => {
+          resetForm()
+          setSuccessMessage("Withdrawal submitted successfully.")
+          router.refresh()
+        }}
         bankKey={bankKey}
         amount={parsePositiveAmount(amount) ?? 0}
         mode="withdraw"

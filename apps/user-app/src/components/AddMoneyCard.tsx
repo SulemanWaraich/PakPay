@@ -7,8 +7,14 @@ import { TextInput } from "@repo/ui"
 import { BankPaymentModal } from "./BankPaymentModal"
 import { type BankKey, bankThemes } from "./bank-themes"
 import { apiErrorMessage } from "../app/lib/apiErrors"
+import { useRouter } from "next/navigation"
 
 const BANK_KEYS: BankKey[] = ["HBL", "UBL", "MEEZAN"]
+
+const DEMO_DEPOSITS = [
+  { label: "demo.user@pakpay.site", amount: "5000", bankKey: "HBL" as BankKey },
+  { label: "demo.user2@pakpay.site", amount: "3000", bankKey: "MEEZAN" as BankKey },
+] as const
 
 function parsePositiveAmount(value: string): number | null {
   const trimmed = value.trim()
@@ -19,11 +25,19 @@ function parsePositiveAmount(value: string): number | null {
 }
 
 export const AddMoney = () => {
+  const router = useRouter()
   const [amount, setAmount] = useState("")
   const [bankKey, setBankKey] = useState<BankKey>("HBL")
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ amount?: string; bank?: string; form?: string }>({})
+  const [successMessage, setSuccessMessage] = useState("")
+
+  const resetForm = () => {
+    setAmount("")
+    setBankKey("HBL")
+    setErrors({})
+  }
 
   const options = useMemo(() => BANK_KEYS.map((k) => ({ key: k, value: bankThemes[k].displayName })), [])
 
@@ -112,9 +126,34 @@ export const AddMoney = () => {
   return (
     <Card title="Add Money">
       <div className="w-full p-2">
+        {successMessage && (
+          <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{successMessage}</p>
+        )}
         {errors.form && (
           <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{errors.form}</p>
         )}
+
+        <div className="mb-4">
+          <p className="text-xs text-gray-500 mb-2">Demo quick-fill:</p>
+          <div className="flex flex-wrap gap-2">
+            {DEMO_DEPOSITS.map((demo) => (
+              <button
+                key={demo.label}
+                type="button"
+                onClick={() => {
+                  setAmount(demo.amount)
+                  setBankKey(demo.bankKey)
+                  setSuccessMessage("")
+                  clearError("amount")
+                  clearError("bank")
+                }}
+                className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full cursor-pointer hover:bg-green-50 hover:text-green-700"
+              >
+                {demo.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
           <TextInput
@@ -150,6 +189,11 @@ export const AddMoney = () => {
       <BankPaymentModal
         isOpen={open}
         onClose={() => setOpen(false)}
+        onSuccess={() => {
+          resetForm()
+          setSuccessMessage("Deposit submitted successfully.")
+          router.refresh()
+        }}
         bankKey={bankKey}
         amount={parsePositiveAmount(amount) ?? 0}
         mode="deposit"

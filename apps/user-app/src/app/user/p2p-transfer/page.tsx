@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth"
-import { SendMoneyCard } from "../../../components/SendMoneyCard"
-import { P2PTransaction } from "../../../components/P2PTransaction"
+import P2PTransferClient from "../../../components/P2PTransferClient"
 import { authOptions } from "../../lib/auth"
 import { prismaPlain } from "@repo/db"
 import { redirect } from "next/navigation"
@@ -38,8 +37,8 @@ export default async function P2PTransferPage() {
   const transactions = await getP2pTransactions(userId)
 
   return (
-    <div className="w-screen">
-      <div className="mb-4 sm:text-left text-center">
+    <div className="w-full overflow-x-hidden">
+      <div className="mb-4 min-w-0 sm:text-left text-center">
         <div className="sm:text-4xl text-2xl text-green-600 pt-8 font-bold ml-4 mb-1">
           P2P Transfer
         </div>
@@ -48,15 +47,8 @@ export default async function P2PTransferPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 p-4">
-        <div>
-          <SendMoneyCard />
-        </div>
-        <div>
-          <div className="pt-4">
-            <P2PTransaction currentUserId={userId} transactions={transactions} />
-          </div>
-        </div>
+      <div className="min-w-0 p-4">
+        <P2PTransferClient userId={userId} initialTransactions={transactions} />
       </div>
     </div>
   )

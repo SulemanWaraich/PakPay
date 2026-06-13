@@ -1,16 +1,26 @@
 "use client"
 import { Button, Card, TextInput } from "@repo/ui"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { p2pTransfer } from "../app/lib/actions/p2pTransfer"
+import { showToast } from "../app/lib/toastMessage"
+
 const DEMO_ACCOUNTS = [
   { number: "+923007654321", name: "Ahmed Khan", role: "Merchant" },
   { number: "+923451234567", name: "Usman Tariq", role: "User2" },
 ] as const
 
+const DEMO_EMAILS = [
+  { email: "demo.user@pakpay.site", number: "+923001234567", name: "Sara Malik" },
+  { email: "demo.user2@pakpay.site", number: "+923451234567", name: "Usman Tariq" },
+] as const
+
 export const SendMoneyCard = () => {
+  const router = useRouter()
   const [amount, setAmount] = useState("")
   const [number, setNumber] = useState("")
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [errors, setErrors] = useState<{ number?: string; amount?: string; form?: string }>({})
 
   const clearFieldError = (field: "number" | "amount") => {
@@ -46,13 +56,20 @@ export const SendMoneyCard = () => {
 
     setLoading(true)
     setErrors({})
+    setSuccessMessage("")
 
     const response = await p2pTransfer(number.trim(), Number(amount))
     setLoading(false)
 
     if (response.success) {
+      const recipientName = response.recipientName ?? number.trim()
+      const sentAmount = Number(amount)
+      const message = `PKR ${sentAmount.toLocaleString()} sent successfully to ${recipientName}`
+      setSuccessMessage(message)
+      showToast("success", message)
       setAmount("")
       setNumber("")
+      router.refresh()
     } else {
       const message = response.message
       if (message.toLowerCase().includes("not found")) {
@@ -70,6 +87,9 @@ export const SendMoneyCard = () => {
   return (
     <Card title="Send Money">
       <div className="w-full p-2">
+        {successMessage && (
+          <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{successMessage}</p>
+        )}
         {errors.form && (
           <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{errors.form}</p>
         )}
@@ -87,7 +107,23 @@ export const SendMoneyCard = () => {
           {errors.number && <p className="mt-1 text-xs text-red-600">{errors.number}</p>}
 
           <div className="mt-2">
-            <p className="text-xs text-gray-500 mb-2">Demo accounts you can send to:</p>
+            <p className="text-xs text-gray-500 mb-2">Demo quick-fill:</p>
+            <div className="flex flex-wrap gap-2">
+              {DEMO_EMAILS.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  onClick={() => {
+                    setNumber(account.number)
+                    clearFieldError("number")
+                  }}
+                  className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full cursor-pointer hover:bg-green-50 hover:text-green-700"
+                >
+                  {account.email} · {account.name}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mb-2 mt-3">Demo accounts you can send to:</p>
             <div className="flex flex-wrap gap-2">
               {DEMO_ACCOUNTS.map((account) => (
                 <button

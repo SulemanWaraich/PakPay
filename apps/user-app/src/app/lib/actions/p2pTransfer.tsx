@@ -8,6 +8,7 @@ import { rateLimitAllow } from "../rateLimitRedis"
 import { logger } from "../logger"
 import { safeP2pTransferErrorMessage } from "../safeClientError"
 import { amountPkrSchema } from "../validation/schemas"
+import { publishAppEvent } from "../publishAppEvent"
 
 /** @param amountPkr Whole PKR from the UI (converted to paisa before ledger writes). */
 export const p2pTransfer = async (to: string, amountPkr: number) => {
@@ -30,19 +31,23 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
 
     const fromUser = await prisma.user.findUnique({
       where: { id: fromUserId },
-      select: { number: true },
+      select: { number: true, name: true },
     })
     if (fromUser?.number === to) {
       return { success: false, message: "You cannot send money to yourself" }
     }
 
-    const user = await prisma.user.findFirst({ where: { number: to } })
+    const user = await prisma.user.findFirst({
+      where: { number: to },
+      select: { id: true, name: true, number: true },
+    })
     if (!user) {
       return { success: false, message: "No account found with this number" }
     }
 
     const amountPaisa = pkrToPaisa(amountPkr)
     const toUserId = user.id
+    const timestamp = new Date()
 
     await prismaPlain.$transaction(async (tx) => {
       const [lockFirst, lockSecond] =
@@ -85,13 +90,30 @@ export const p2pTransfer = async (to: string, amountPkr: number) => {
           fromUserId,
           toUserId,
           amount: amountPaisa,
-          timestamp: new Date(),
+          timestamp,
         },
       })
     })
 
+    await publishAppEvent({
+      type: "p2pTransferAdded",
+      fromUserId,
+      toUserId,
+      amount: amountPaisa,
+      timestamp: timestamp.toISOString(),
+      fromUser: {
+        name: fromUser?.name ?? null,
+        number: fromUser?.number ?? null,
+      },
+      toUser: {
+        name: user.name ?? null,
+        number: user.number ?? null,
+      },
+    })
+
     return {
       success: true,
+      recipientName: user.name ?? user.number ?? to,
       message: `Successfully sent Rs. ${paisaToPkr(amountPaisa).toFixed(2)} to ${to}.`,
     }
   } catch (error: unknown) {

@@ -5,6 +5,8 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Textarea } from "../../../components/ui/textArea";
 import { apiErrorMessage } from "../../lib/apiErrors";
+import { Card, CardContent, CardHeader} from "../../../components/ui/card"
+
 
 type DisputeRow = {
   id: number;
@@ -70,13 +72,27 @@ export default function UserDisputesPage() {
   };
 
   return (
-    <div className="max-w-2xl  p-6 space-y-8">
-      <h1 className="text-2xl font-bold">Disputes</h1>
+    <div className="max-w-6xl p-4 space-y-8 flex flex-col items-center justify-center">
+      {/* <h1 className="text-2xl sm:text-4xl font-bold text-green-600">Disputes</h1>
       <p className="text-sm text-muted-foreground">
         Open a dispute for a merchant payment you made (SUCCESS only). Include the transaction ID from your history.
-      </p>
+      </p> */}
 
-      <div className="space-y-3 border rounded-lg p-4">
+     
+
+<Card className="w-full max-w-4xl px-4 py-2 border-2 border-gray-200 rounded-lg"> 
+  <CardHeader>
+  <div className=" min-w-0 sm:text-left text-center">
+        <div className="sm:text-4xl text-2xl text-green-600 pt-4 font-bold ml-2 mb-1">
+          Disputes
+        </div>
+        <p className="text-gray-600 sm:text-md text-sm ml-2">
+          Open a dispute for a merchant payment you made (SUCCESS only). Include the transaction ID from your history.
+        </p>
+      </div>
+  </CardHeader>
+  <CardContent>
+      <div className="space-y-3 border rounded-lg p-4 w-full max-w-4xl">
         <div>
           <label className="text-sm font-medium">Merchant transaction ID</label>
           <Input value={txnId} onChange={(e) => setTxnId(e.target.value)} placeholder="e.g. 42" />
@@ -90,11 +106,11 @@ export default function UserDisputesPage() {
         <Button onClick={() => void submit()}>Submit dispute</Button>
       </div>
 
-      <div>
-        <h2 className="font-semibold mb-2">Your disputes</h2>
+      <div className="mt-4 max-w-4xl">
+        <h2 className="font-semibold mb-2 text-lg text-green-600">Your disputes</h2>
         <ul className="space-y-2 text-sm">
           {rows.map((r) => (
-            <li key={r.id} className="border rounded p-2">
+            <li key={r.id} className="border rounded-lg p-4">
               <div className="font-medium">#{r.id} — {r.status}</div>
               <div>
                 Txn #{r.MerchantTransaction?.id ?? "—"} — PKR {r.MerchantTransaction?.amount ?? "—"}
@@ -107,6 +123,8 @@ export default function UserDisputesPage() {
           )}
         </ul>
       </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }

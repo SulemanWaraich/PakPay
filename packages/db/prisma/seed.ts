@@ -20,7 +20,7 @@ const DEMO_EMAILS = [
   "demo.merchant2@pakpay.site",
   "demo.admin@pakpay.site",
   "demo.user2@pakpay.site",
-  "admin@pakpay.site",   // 👈 add this
+  "admin@pakpay.site",
 ] as const;
 
 /** PKR → paisa */
@@ -282,7 +282,7 @@ async function main() {
       timestamp: daysAgo(26),
     },
   });
-  
+
   await prisma.p2pTransfer.create({
     data: {
       fromUserId: sara.id,
@@ -291,7 +291,7 @@ async function main() {
       timestamp: daysAgo(14),
     },
   });
-  
+
   await prisma.p2pTransfer.create({
     data: {
       fromUserId: usman.id,
@@ -300,7 +300,7 @@ async function main() {
       timestamp: daysAgo(9),
     },
   });
-  
+
   await prisma.p2pTransfer.create({
     data: {
       fromUserId: sara.id,
@@ -338,6 +338,7 @@ async function main() {
       amount: 850,
       days: 28,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.QR,
       settlementId: settlement1.id,
       settled: true,
       refunded: false,
@@ -348,6 +349,7 @@ async function main() {
       amount: 1_200,
       days: 24,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.CARD,
       settlementId: settlement1.id,
       settled: true,
       refunded: false,
@@ -358,6 +360,7 @@ async function main() {
       amount: 650,
       days: 20,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.CARD,
       settlementId: settlement1.id,
       settled: true,
       refunded: true,
@@ -369,6 +372,7 @@ async function main() {
       amount: 2_100,
       days: 16,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
       settlementId: settlement1.id,
       settled: true,
       refunded: false,
@@ -379,6 +383,7 @@ async function main() {
       amount: 450,
       days: 12,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.QR,
       settlementId: settlement2.id,
       settled: true,
       refunded: false,
@@ -389,6 +394,7 @@ async function main() {
       amount: 1_800,
       days: 8,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
       settlementId: settlement2.id,
       settled: true,
       refunded: false,
@@ -399,6 +405,7 @@ async function main() {
       amount: 950,
       days: 4,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.QR,
       settlementId: settlement2.id,
       settled: true,
       refunded: false,
@@ -409,17 +416,18 @@ async function main() {
       amount: 750,
       days: 1,
       customerId: sara.id,
+      paymentMethod: PaymentMethod.CARD,
       settlementId: null,
       settled: false,
       refunded: false,
       status: TransactionStatus.SUCCESS,
     },
-    // Usman transactions
     {
       ref: "KB-009",
       amount: 3_200,
       days: 26,
       customerId: usman.id,
+      paymentMethod: PaymentMethod.CARD,
       settlementId: settlement1.id,
       settled: true,
       refunded: false,
@@ -430,6 +438,7 @@ async function main() {
       amount: 1_500,
       days: 19,
       customerId: usman.id,
+      paymentMethod: PaymentMethod.QR,
       settlementId: settlement2.id,
       settled: true,
       refunded: false,
@@ -440,6 +449,7 @@ async function main() {
       amount: 2_800,
       days: 11,
       customerId: usman.id,
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
       settlementId: settlement2.id,
       settled: true,
       refunded: false,
@@ -450,6 +460,7 @@ async function main() {
       amount: 900,
       days: 3,
       customerId: usman.id,
+      paymentMethod: PaymentMethod.QR,
       settlementId: null,
       settled: false,
       refunded: false,
@@ -464,9 +475,9 @@ async function main() {
     const txn = await prisma.merchantTransaction.create({
       data: {
         merchantId: karachiBites.id,
-        customerId: spec.customerId,          // 👈 changed from sara.id
+        customerId: spec.customerId,
         amount: pkr(spec.amount),
-        paymentMethod: PaymentMethod.QR,
+        paymentMethod: spec.paymentMethod,
         status: spec.status,
         settled: spec.settled,
         settledAt: spec.settled ? daysAgo(Math.max(spec.days - 2, 1)) : null,
@@ -528,7 +539,7 @@ async function main() {
   console.log("User:      demo.user@pakpay.site / Demo@1234");
   console.log("Merchant:  demo.merchant@pakpay.site / Demo@1234");
   console.log("Merchant2: demo.merchant2@pakpay.site / Demo@1234");
-  console.log("Admin:     demo.admin@pakpay.site / Demo@1234");
+  console.log("Admin:     admin@pakpay.site / Demo@1234");
   console.log("User2:     demo.user2@pakpay.site / Demo@1234");
 }
 

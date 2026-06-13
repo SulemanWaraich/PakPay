@@ -72,7 +72,7 @@ export default function UserDisputesPage() {
   };
 
   return (
-    <div className="max-w-6xl p-4 space-y-8 flex flex-col items-center justify-center">
+    <div className="max-w-6xl  p-4 space-y-8 flex flex-col items-center justify-center">
       {/* <h1 className="text-2xl sm:text-4xl font-bold text-green-600">Disputes</h1>
       <p className="text-sm text-muted-foreground">
         Open a dispute for a merchant payment you made (SUCCESS only). Include the transaction ID from your history.

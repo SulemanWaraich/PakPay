@@ -35,6 +35,8 @@ export default function ActivityChart({ data }: any) {
             name="Revenue"
             stroke="#22c55e"
             strokeWidth={2}
+            dot={{ r: 2, fill: "#22c55e" }}
+            activeDot={{ r: 4 }}
           />
           <Line
             type="monotone"
@@ -42,6 +44,8 @@ export default function ActivityChart({ data }: any) {
             name="Settled Payout"
             stroke="#f97316"
             strokeWidth={2}
+            dot={{ r: 2, fill: "#22c55e" }}
+            activeDot={{ r: 4 }}
           />
         </LineChart>
       </ResponsiveContainer>
